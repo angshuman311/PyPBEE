@@ -5,6 +5,7 @@ Created on Sat Nov 16 12:42:26 2019
 @author: Angshuman Deb
 """
 
+from .matplotlib_setup import *
 from .analysis import Analysis
 from .avg_sa import AvgSa
 from .ds import DS
@@ -24,9 +25,7 @@ from .sa_t import SaT
 from .structural_analysis_platform import StructuralAnalysisPlatform, OpenSeesTcl, OpenSeesPy
 from .structure import Structure, FrameStructure, OSB
 from .utility import Utility
-import matplotlib
 
-matplotlib.use('TkAgg')
 
 __all__ = [
     'Analysis',

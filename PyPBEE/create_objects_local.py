@@ -25,9 +25,7 @@ from scipy.stats import lognorm
 import numpy as np
 
 haz_lev_list = ['1', '2', '3', '4', '5', '6']
-# haz_lev_list = ['1', '2', '3', '6']
 mrp_list = [72, 224, 475, 975, 2475, 4975]
-# mrp_list = [72, 224, 475, 4975]
 
 name = 'Bridge_A'
 analysis_case = '100'
@@ -44,12 +42,11 @@ else:
 if analysis_case == '300':
     rng_seed = 4640
 
-base_dir_path = Utility.get_path(r'C:\Users\adeb\Work\PyPBEE')
+base_dir_path = Utility.get_path(r"E:\PyPBEE")
 model_files_path = Utility.get_path(base_dir_path, name.replace('', ''))
 model_work_dir_path = Utility.get_path(base_dir_path, f'{name}_Work_Dir')
-local_opensees_path = Utility.get_path(base_dir_path, 'OpenSees_Windows', 'OpenSees')
-# local_opensees_path = Utility.get_path(r"C:\Users\adeb\OpenSeesFinal\OpenSees\Win64\bin\OpenSees.exe")
-local_python_path = Utility.get_path(r"C:\Users\adeb\Anaconda3\envs\opensees\python.exe")
+local_opensees_path = Utility.get_path(r"E:\PyPBEE\OpenSees_Windows\OpenSees")
+local_python_path = Utility.get_path(r"C:\Users\joel-students\anaconda3\envs\pypbee\python.exe")
 gm_database_dir_path = Utility.get_path(base_dir_path, 'NGA_PEER_EQ_DB')
 local_bash_path = Utility.get_path(r'C:\Program Files\Git\git-bash')
 model_params = Utility.import_attr_from_module(model_files_path, f"osb_info_{name}", 'model_params')
@@ -59,7 +56,7 @@ location_info = Utility.import_attr_from_module(model_files_path, f"osb_info_{na
 structural_analysis_platform = OpenSeesPy(model_files_path, local_python_path)
 
 osb = OSB(name, location_info, model_files_path, model_work_dir_path, model_params, structural_analysis_platform)
-# design_num_list = osb.get_design_num_list('all')
+design_num_list = osb.get_design_num_list('all')
 
 if analysis_case == '400':
     if name == 'Bridge_A':
@@ -99,9 +96,7 @@ edp_list = [
     MaxColRebarStrain('range', osb, '3', 'shared'),
     MaxSpringDeformation('shear_key', 'compression', osb, '4', 'separate', normalize_with='$D3', small_value=1.0e-10, large_value=10.0)
 ]
-delta_input_list = [np.logspace(np.log10(1e-7), np.log10(1.0), 1000)] * (len(edp_list))
-# delta_input_list = [np.linspace(1e-7, 1.0, 1000)] * (len(edp_list))
-# delta_input_list.append(np.logspace(np.log10(1e-7), np.log10(10.0), 1000))
+delta_input_list = [np.logspace(np.log10(1e-7), np.log10(1.0), 1000)] * 3 + [np.logspace(np.log10(1e-7), np.log10(10.0), 1000)]
 haz_req = dict()
 haz_req['fit_dist'] = lognorm
 haz_req['transf_on_dist_params_list'] = [lambda x, y, z: x, lambda x, y, z: y, lambda x, y, z: z]

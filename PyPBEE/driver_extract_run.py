@@ -70,5 +70,4 @@ ax.set_ylim(ax.get_ylim()[0], 3)
 # ----------------------------------------------------------------------------
 gm_file_names, scale_fac = im.get_gm_rec_info(for_which)
 Utility.plot_raw_ground_acc_time_history(gm_database_dir_path, gm_file_names=gm_file_names, scale_fac=scale_fac)
-Utility.plot_raw_ground_acc_time_history(gm_database_dir_path, rec_num=24)
 im.plot_gm_psa_spectra(for_which)

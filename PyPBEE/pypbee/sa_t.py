@@ -32,9 +32,9 @@ class SaT(Sa):
 
     def evaluate_period(self, for_which):
         period = self.period
-        if isinstance(period, str) and period.startswith('T_') and period[period.index('_') + 1:].isdigit():
+        if isinstance(period, str) and period.startswith('T_'):
             structure = self.structure
-            eval_period = structure.get_periods(for_which, int(period[period.index('_') + 1:]))
+            eval_period = structure.get_period_range_extremes(for_which, [period, ])[0]
         elif isinstance(period, float):
             eval_period = period
         else:
