@@ -1,0 +1,10 @@
+numpy
+scipy
+matplotlib
+pygmm
+pathos
+pyDOE2
+xlrd
+eqsig
+openpyxl
+python-benedict

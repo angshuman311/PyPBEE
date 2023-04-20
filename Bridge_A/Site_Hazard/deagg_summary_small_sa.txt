@@ -1,0 +1,10 @@
+Disaggregation Results for IML = 1.0E-4 (for Prob = 0.49114215)
+
+
+  Mbar = 5.6575766
+  Dbar = 119.35172
+  Ebar = -7.8148794
+
+  6.15 � Mmode < 6.25
+  66.5 � Dmode < 67.5
+Emode <= -2

@@ -1,0 +1,12 @@
+/Bridge_B/
+/Bridge_C/
+/Bridge_MAOC/
+/Bridge_*_Work_Dir/
+/Bridge_*_extract_*/
+/NGA_PEER_EQ_DB/
+/OpenSees_Windows/
+/PyPBEE/.idea/
+/PyPBEE/__pycache__/
+/PyPBEE/pypbee/__pycache__/
+/PyPBEE_Bridge_Models_Backup/
+/GIT-HOWTO-README.docx
