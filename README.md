@@ -1,6 +1,6 @@
 # PyPBEE
 
-[Performance-based Earthquake Engineering (PBEE) for Python](https://github.com/angshuman311/PyPBEE/blob/master/About_PyPBEE/About_PyPBEE.pdf)
+[Performance-Based Earthquake Engineering (PBEE) for Python](https://github.com/angshuman311/PyPBEE/blob/master/About_PyPBEE/About_PyPBEE.pdf)
 
 # Related Publications
 - [Updated Probabilistic Seismic Performance Assessment Framework for Ordinary Standard Bridges in California](https://onlinelibrary.wiley.com/doi/abs/10.1002/eqe.3459)
