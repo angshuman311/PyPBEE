@@ -525,7 +525,7 @@ class Utility:
                 while go_on:
                     curr_line = fid.readline()
                     words = curr_line.split()
-                    if all(Utility.is_numeric_string(word) for word in words):
+                    if all(Utility.is_numeric_string(word) for word in words) and len(words) > 0:
                         go_on = False
                     else:
                         skiprows += 1

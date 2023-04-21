@@ -60,7 +60,7 @@ plt.close('all')
 # Input ground motion pseudo spectral acceleration spectrum
 # ----------------------------------------------------------------------------
 _, ax, _ = im.plot_gm_psa_spectra(for_which, figkwargs={'num': 1, 'figsize': (3.56, 2.68)}, save_mat=False,
-                                  minor_grid_alpha=0.5)
+                                  minor_grid_alpha=0.5, plot_uhs=True)
 ax.set_xlim(0.05, 1.5)
 ax.set_ylim(ax.get_ylim()[0], 3)
 # plt.savefig('gms.png')
@@ -70,4 +70,4 @@ ax.set_ylim(ax.get_ylim()[0], 3)
 # ----------------------------------------------------------------------------
 gm_file_names, scale_fac = im.get_gm_rec_info(for_which)
 Utility.plot_raw_ground_acc_time_history(gm_database_dir_path, gm_file_names=gm_file_names, scale_fac=scale_fac)
-im.plot_gm_psa_spectra(for_which)
+# im.plot_gm_psa_spectra(for_which)

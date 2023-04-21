@@ -208,3 +208,7 @@ class IM(ABC):
         return reqd_dist_param_names
 
     # ------------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def invert_seismic_hazard(shc, mrp):
+        return shc[np.argmin(np.abs(shc[:, 1] - 1 / mrp)), 0]

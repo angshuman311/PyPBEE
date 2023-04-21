@@ -80,9 +80,9 @@ design_num_list = ['1']
 prelim_analysis = PrelimAnalysis(osb, 8)
 gmm = BooreAtkinson2008
 correl_func = pygmm.baker_jayaram_2008.calc_correls
-# im = SaT(osb, gmm, correl_func, 0.01)
-# im = SaT(osb, gmm, correl_func, 'T_1_trans')
-im = AvgSa(osb, gmm, correl_func, ['T_1_trans', ], range_multiplier=[1, 2.5])
+# im = SaT(osb, gmm, correl_func, 1.)
+im = SaT(osb, gmm, correl_func, 'T_1_trans')
+# im = AvgSa(osb, gmm, correl_func, ['T_1_trans', ], range_multiplier=[1, 2.5])
 im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
 # im_input = np.linspace(1e-4, 5, 1000, endpoint=True)
 spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)

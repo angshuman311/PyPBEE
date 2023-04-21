@@ -225,7 +225,7 @@ class SaT(Sa):
         period = self.evaluate_period(for_which)
 
         ylim = ax.get_ylim()
-        ax.loglog([period] * 2, ylim, color=lc, linestyle='-', linewidth=lw)
+        ax.plot([period] * 2, ylim, color=lc, linestyle='-', linewidth=lw)
         ax.set_ylim(ylim)
 
         export_mat_dict['period'] = period

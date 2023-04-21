@@ -63,6 +63,18 @@ class Sa(IM):
     # Public Functionalities (instance methods)
     ####################################################################################################################
 
+    def uniform_hazard_spectrum(self, mrp, **kwargs):
+        spectral_periods = kwargs.get('spectral_periods', np.array([])).flatten()  # 1-d array
+        if spectral_periods.size == 0:
+            spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
+        uhs = []
+        med_sa_periods, sig_ln_sa_periods = self._evaluate_gmm(spectral_periods)
+        im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
+        for itr in range(len(spectral_periods)):
+            shc = self._compute_seismic_hazard_integral(med_sa_periods[:, itr], sig_ln_sa_periods[:, itr], im_input)['seismic_hazard_curve']
+            uhs.append(IM.invert_seismic_hazard(shc, mrp))
+        return np.column_stack((spectral_periods, uhs))
+
     def get_moc(self, periods):
         n_p = len(periods)
         moc = np.zeros((n_p, n_p))
@@ -361,6 +373,8 @@ class Sa(IM):
         txc = kwargs.get('txc', 'red')
         k = kwargs.get('k', 1.96)
         fig_ax = kwargs.get('fig_ax', None)
+        plot_uhs = kwargs.get('plot_uhs', False)
+        uhs_lc = kwargs.get('uhs_lc', 'deepskyblue')
 
         if fig_ax is None or np.array(fig_ax, dtype='object').any() is None:
             fig = plt.figure(**figkwargs)
@@ -414,6 +428,10 @@ class Sa(IM):
 
         if gm_num is not None:
             ax.plot(per_known, psa[:, gm_num - 1], color=lc1, linewidth=lw)
+
+        if plot_uhs:
+            uhs = self.uniform_hazard_spectrum(mrp)
+            ax.plot(uhs[:, 0], uhs[:, 1], color=uhs_lc, linewidth=lw * 1.5)
 
         sample_mean = np.mean(np.log(psa), axis=1)
         sample_median = np.exp(sample_mean)
