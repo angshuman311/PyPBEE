@@ -845,6 +845,8 @@ class Utility:
 
     @staticmethod
     def merge_sorted_1d_arrays(big_array, small_array):
+        if np.isscalar(small_array):
+            small_array = np.array([small_array])
         big_array = np.array(big_array)
         small_array = np.array(small_array)
         for i_s in range(len(small_array)):

@@ -17,16 +17,16 @@ from create_objects_local import osb, analysis_case, rng_seed, \
 
 if __name__ == "__main__":
 
-    pool_size = 10
-    gms_n_loop = 0
+    pool_size = 1
+    gms_n_loop = 2
 
     # prelim_analysis.setup(analysis_case, design_num_list, rng_seed=rng_seed)
     # prelim_analysis.run(analysis_case, pool_size)
     # prelim_analysis.wrap_up(analysis_case)
 
-    psha.setup(analysis_case, design_num_list)
-    psha.run(analysis_case, pool_size, im_input=im_input)
-    psha.wrap_up(analysis_case)
+    # psha.setup(analysis_case, design_num_list)
+    # psha.run(analysis_case, pool_size, im_input=im_input)
+    # psha.wrap_up(analysis_case)
 
     #
     gms.setup(analysis_case, design_num_list, haz_lev_list, mrp_list, n_gm_list)

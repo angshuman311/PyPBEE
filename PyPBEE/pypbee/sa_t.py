@@ -6,12 +6,10 @@ Created on Sun Nov 17 16:16:25 2019
 """
 
 import numpy as np
-from .structure import Structure
 from .sa import Sa
 from .utility import Utility
 import os
 import sys
-import scipy.io as sio
 
 
 class SaT(Sa):
@@ -44,28 +42,6 @@ class SaT(Sa):
         rec_data = Utility.pickle_load_dict(rec_data_file_path)
         per_known = rec_data['per_known']
         return per_known[np.argmin(np.abs(per_known - eval_period))]
-
-    # ------------------------------------------------------------------------------------------------------------------
-
-    def _cond_spectrum(self, mrp, for_which, med_sa_spectrum, sig_ln_sa_spectrum, spectral_periods):
-        target = self.get_inv_seismic_hazard(mrp, for_which)
-        period = self.evaluate_period(for_which)
-        period_mask_lt = spectral_periods < period
-        period_mask_gt = spectral_periods > period
-
-        med_sa_spectrum = np.hstack(
-            (med_sa_spectrum[period_mask_lt],
-             target,
-             med_sa_spectrum[period_mask_gt])
-        )
-
-        sig_ln_sa_spectrum = np.hstack(
-            (sig_ln_sa_spectrum[period_mask_lt],
-             0.0,
-             sig_ln_sa_spectrum[period_mask_gt])
-        )
-        spectral_periods = Utility.merge_sorted_1d_arrays(spectral_periods, [period])
-        return med_sa_spectrum, sig_ln_sa_spectrum, spectral_periods
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -121,40 +97,6 @@ class SaT(Sa):
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    def compute_seismic_hazard_integral(self, for_which, **kwargs):
-        im_input = kwargs.get('im_input', np.array([]))
-
-        dir_level_to_seek = 'Model_Realization_Num'
-        for_which = Structure.get_modified_for_which(for_which, dir_level_to_seek)
-
-        period = self.evaluate_period(for_which)
-
-        med_sa_period, sig_ln_sa_period = self.evaluate_gmm(period)  # get back 1-d arrays for scenarios
-        to_return = self._compute_seismic_hazard_integral(med_sa_period, sig_ln_sa_period, im_input)
-
-        return to_return
-
-    # ------------------------------------------------------------------------------------------------------------------
-
-    def get_target_spectrum(self, mrp, for_which, **kwargs):
-        uncondition = kwargs.get('uncondition', True)
-        spectral_periods = kwargs.get('spectral_periods', np.array([])).flatten()  # 1-d array
-        if spectral_periods.size == 0:
-            spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
-
-        period = self.evaluate_period(for_which)
-        spectral_periods = Utility.merge_sorted_1d_arrays(spectral_periods, [period])
-        med_sa_spectrum, sig_ln_sa_spectrum = self._evaluate_gmm(spectral_periods)  # (n_s, n_sp), (n_s, n_sp)
-
-        mean_req, cov_req, spectral_periods = self._get_target_spectrum(mrp, for_which,
-                                                                        med_sa_spectrum, sig_ln_sa_spectrum,
-                                                                        spectral_periods,
-                                                                        uncondition)
-
-        return mean_req, cov_req, spectral_periods
-
-    # ------------------------------------------------------------------------------------------------------------------
-
     def _get_target_spectrum(self, mrp, for_which, med_sa_spectrum, sig_ln_sa_spectrum,
                              spectral_periods, uncondition):
         if uncondition:
@@ -171,12 +113,6 @@ class SaT(Sa):
         med_sa_period = med_sa_spectrum[:, ind_period].flatten()  # (n_s,)
         sig_ln_sa_period = sig_ln_sa_spectrum[:, ind_period].flatten()  # (n_s,)
 
-        period_mask = spectral_periods != period
-        spectral_periods = spectral_periods[period_mask]
-
-        med_sa_spectrum = med_sa_spectrum[:, period_mask]
-        sig_ln_sa_spectrum = sig_ln_sa_spectrum[:, period_mask]
-
         n_s = med_sa_spectrum.shape[0]
         n_sp = len(spectral_periods)
 
@@ -188,82 +124,21 @@ class SaT(Sa):
                                                           sig_ln_sa_spectrum,
                                                           rho, self.get_moc(spectral_periods),
                                                           med_sa_period, sig_ln_sa_period)
+
+        cov_req[ind_period, :, :] = 0.
+        cov_req[:, ind_period, :] = 0.
+
         return mean_req, cov_req, spectral_periods
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    def select_ground_motion_records(self, n_gm, mean_req, cov_req, spectral_periods, mrp, for_which, **kwargs):
-        rng_seed = kwargs.get('rng_seed', None)
-        max_scale = kwargs.get('max_scale', 4)
-        min_scale = kwargs.get('min_scale', 1 / 3)
-        dev_weights = kwargs.get('dev_weights', [1, 2])
-        n_loop = kwargs.get('n_loop', 2)
-        penalty = kwargs.get('penalty', 0)
-        is_scaled = kwargs.get('is_scaled', True)
-        not_allowed = kwargs.get('not_allowed', [])
-        classify_pulse = kwargs.get('classify_pulse', True)
-        sampling_method = kwargs.get('sampling_method', 'mcs')
-
-        ground_motion_records = self._select_ground_motion_records(n_gm, mean_req, cov_req, mrp, for_which,
-                                                                   spectral_periods,
-                                                                   rng_seed, max_scale, min_scale, dev_weights, n_loop,
-                                                                   penalty, is_scaled, not_allowed, classify_pulse,
-                                                                   sampling_method)
-
-        return ground_motion_records
-
-    # ------------------------------------------------------------------------------------------------------------------
-
-    def plot_gm_psa_spectra(self, for_which, **kwargs):
-        lc = kwargs.get('lc', 'black')
-        lw = kwargs.get('lw', 1)
-        save_dir_path = kwargs.get('save_dir_path', Utility.get_path(os.getcwd()))
-        save_mat = kwargs.get('save_mat', False)
-
-        fig, ax, export_mat_dict = self._plot_gm_psa_spectra(for_which, **kwargs)
-
+    def mark_period_on_axis(self, for_which, ax, **kwargs):
+        lc = kwargs.get('period_lc', 'black')
+        lw = kwargs.get('period_lw', 1)
         period = self.evaluate_period(for_which)
-
         ylim = ax.get_ylim()
-        ax.plot([period] * 2, ylim, color=lc, linestyle='-', linewidth=lw)
+        if '3D' in ax.__class__.__name__:
+            ax.plot([period] * 2, ylim, 0, color=lc, linestyle='-', linewidth=lw)
+        else:
+            ax.plot([period] * 2, ylim, color=lc, linestyle='-', linewidth=lw)
         ax.set_ylim(ylim)
-
-        export_mat_dict['period'] = period
-
-        if save_mat:
-            structure = self.structure
-            name = structure.name
-            for_which_str = '_'.join(for_which)
-            file_name = f'plot_gm_psa_spectra_{name}_{for_which_str}.mat'
-            sio.savemat(Utility.get_path(save_dir_path, file_name), export_mat_dict)
-
-        return fig, ax, export_mat_dict
-
-    # ------------------------------------------------------------------------------------------------------------------
-
-    def plot_conditional_spectra_pdfs(self, mrp, for_which, **kwargs):
-        lc = kwargs.get('lc', 'black')
-        lw = kwargs.get('lw', 1)
-        save_dir_path = kwargs.get('save_dir_path', Utility.get_path(os.getcwd()))
-        save_mat = kwargs.get('save_mat', False)
-
-        fig, ax, export_mat_dict = self._plot_conditional_spectra_pdfs(mrp, for_which, **kwargs)
-
-        structure = self.structure
-        period = self.evaluate_period(for_which)
-
-        ylim = ax.get_ylim()
-        ax.plot([period] * 2, ylim, 0, color=lc, linestyle='-', linewidth=lw)
-        ax.set_ylim(ylim)
-
-        export_mat_dict['period'] = period
-
-        if save_mat:
-            name = structure.name
-            for_which_str = '_'.join(for_which)
-            file_name = f'plot_conditional_spectra_pdfs_{name}_{for_which_str}_mrp_{mrp}.mat'
-            sio.savemat(Utility.get_path(save_dir_path, file_name), export_mat_dict)
-
-        return fig, ax, export_mat_dict
-
-    # ------------------------------------------------------------------------------------------------------------------
