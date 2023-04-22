@@ -59,6 +59,16 @@ class Sa(IM):
     # Public Functionalities (instance methods)
     ####################################################################################################################
 
+    def shc_at_periods(self, periods, **kwargs):
+        im_input = kwargs.get('im_input', np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True))
+        med_sa_periods, sig_ln_sa_periods = self._evaluate_gmm(periods)
+        shc_list = []
+        for itr in range(len(periods)):
+            prob_dist_params_im = np.row_stack(
+                (sig_ln_sa_periods[:, itr], np.abs(0 * med_sa_periods[:, itr]), med_sa_periods[:, itr]))
+            shc_list.append(self._compute_seismic_hazard_integral(lognorm, prob_dist_params_im, im_input)['seismic_hazard_curve'])
+        return shc_list
+
     def select_ground_motion_records(self, n_gm, mean_req, cov_req, spectral_periods, mrp, for_which, **kwargs):
         rng_seed = kwargs.get('rng_seed', None)
         max_scale = kwargs.get('max_scale', 4)
@@ -84,17 +94,21 @@ class Sa(IM):
     def get_target_spectrum(self, mrp, for_which, **kwargs):
         uncondition = kwargs.get('uncondition', True)
         spectral_periods = kwargs.get('spectral_periods', np.array([])).flatten()  # 1-d array
+        uhs = kwargs.get('uhs', False)
+
         if spectral_periods.size == 0:
             spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
 
         spectral_periods = Utility.merge_sorted_1d_arrays(spectral_periods, self.evaluate_period(for_which))
-        med_sa_spectrum, sig_ln_sa_spectrum = self._evaluate_gmm(spectral_periods)  # (n_s, n_sp), (n_s, n_sp)
+        if uhs:
+            temp = self.uniform_hazard_spectrum(mrp, spectral_periods=spectral_periods)
+            return np.log(temp[:, 1][np.newaxis, :]), np.zeros(shape=(temp.shape[0], temp.shape[0], 1)), temp[:, 0]
 
+        med_sa_spectrum, sig_ln_sa_spectrum = self._evaluate_gmm(spectral_periods)  # (n_s, n_sp), (n_s, n_sp)
         mean_req, cov_req, spectral_periods = self._get_target_spectrum(mrp, for_which,
                                                                         med_sa_spectrum, sig_ln_sa_spectrum,
                                                                         spectral_periods,
                                                                         uncondition)
-
         return mean_req, cov_req, spectral_periods
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -114,15 +128,12 @@ class Sa(IM):
     # ------------------------------------------------------------------------------------------------------------------
 
     def uniform_hazard_spectrum(self, mrp, **kwargs):
-        spectral_periods = kwargs.get('spectral_periods', np.array([])).flatten()  # 1-d array
-        if spectral_periods.size == 0:
-            spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
+        spectral_periods = kwargs.get('spectral_periods', np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True))
+        im_input = kwargs.get('im_input', np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True))
         uhs = []
-        med_sa_periods, sig_ln_sa_periods = self._evaluate_gmm(spectral_periods)
-        im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
+        shc_list = self.shc_at_periods(spectral_periods, im_input=im_input)
         for itr in range(len(spectral_periods)):
-            shc = self._compute_seismic_hazard_integral(med_sa_periods[:, itr], sig_ln_sa_periods[:, itr], im_input)['seismic_hazard_curve']
-            uhs.append(IM.invert_seismic_hazard(shc, mrp))
+            uhs.append(IM.invert_seismic_hazard(shc_list[itr], mrp))
         return np.column_stack((spectral_periods, uhs))
 
     def get_moc(self, periods):
@@ -137,12 +148,9 @@ class Sa(IM):
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    def _gmm(self, m, r, reqd_dist_param_names, scenario_data, periods):
-        if np.isscalar(r):
-            r = np.array([r] * len(reqd_dist_param_names))
+    def _gmm(self, scenario_data, periods):
         gmm = self.gmm
-        reqd_dist_vals = {reqd_dist_param_names[itr]: r[itr] for itr in range(len(reqd_dist_param_names))}
-        scenario = pygmm.Scenario(mag=m, **reqd_dist_vals, **scenario_data)
+        scenario = pygmm.Scenario(**scenario_data)
         return gmm(scenario).interp_spec_accels(periods), gmm(scenario).interp_ln_stds(periods)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -155,21 +163,17 @@ class Sa(IM):
             periods = np.array(periods)
 
         scenario_data = self.structure.get_site_hazard_info()['scenario_data']
-        mag = scenario_data.get('mag').flatten()  # 1-d array
-        dist = scenario_data.get('dist').flatten()  # 1-d array
-        scenario_data = {key: scenario_data[key] for key in scenario_data.keys() if key not in ['mag', 'dist']}
 
         n_p = len(periods)
-        n_s = len(mag)
+        n_s = len(list(scenario_data.values())[0])
 
         med_sa_periods = np.zeros((n_s, n_p))
         sig_ln_sa_periods = np.zeros((n_s, n_p))
 
-        reqd_dist_param_names = self.get_reqd_dist_param_names()
+        scenarios = [{key: value for key, value in zip(scenario_data.keys(), values)} for values in zip(*scenario_data.values())]
 
-        for (i, m, r) in zip(list(range(n_s)), mag, dist):
-            med_sa_periods[i, :], sig_ln_sa_periods[i, :] = self._gmm(m, r, reqd_dist_param_names,
-                                                                      scenario_data, periods)
+        for i in range(n_s):
+            med_sa_periods[i, :], sig_ln_sa_periods[i, :] = self._gmm(scenarios[i], periods)
 
         to_return = list()
         to_return.append(med_sa_periods)
@@ -214,36 +218,6 @@ class Sa(IM):
                                       rng_seed, max_scale, min_scale, dev_weights, n_loop,
                                       penalty, is_scaled, not_allowed, classify_pulse, sampling_method):
 
-        ind = np.where(np.all(cov_req[:, :, 0] == 0, axis=1))[0][0]
-        cov_req = np.delete(np.delete(cov_req, ind, axis=0), ind, axis=1)
-        mean_req = np.delete(mean_req, ind, axis=1)
-        spectral_periods = np.delete(spectral_periods, ind)
-
-        if mean_req.shape[0] > 1 and cov_req.shape[2] > 1:
-            is_mixture = True
-        else:
-            is_mixture = False
-
-        if is_mixture:
-            scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
-            threshold = 1.0e-5
-            scenario_mask = scenario_weights >= threshold
-            scenario_weights = scenario_weights[scenario_mask]
-            scenario_weights = scenario_weights / np.sum(scenario_weights)
-            cov_req = cov_req[:, :, scenario_mask]
-            mean_req = mean_req[scenario_mask, :]
-            sig_req = np.sqrt(np.einsum('iik->ki', cov_req))
-            mean_req_exact, sig_req_exact = Utility.get_exact_mixture_params(mean_req, sig_req, scenario_weights)
-            mean_req_exact = mean_req_exact.flatten()
-            sig_req_exact = sig_req_exact.flatten()
-        else:
-            scenario_weights = [1.0]
-            mean_req_exact = mean_req[0, :]
-            sig_req = np.sqrt(np.diag(cov_req[:, :, 0]))[np.newaxis, :]
-            sig_req_exact = sig_req.flatten()
-
-        n_sp = len(spectral_periods)
-
         # Extract rec_data
         rec_data_file_path = Utility.get_path(os.path.dirname(__file__), 'Rec_Data', 'rec_data.pickle')
         rec_data = Utility.pickle_load_dict(rec_data_file_path)
@@ -257,34 +231,76 @@ class Sa(IM):
         not_allowed_ind = np.unique([i - 1 for i in [*not_allowed_rec_num, *not_allowed]])
         pulse_like_records = rec_data['pulse_like_records']
 
-        # Simulate realizations of ground motion spectra
-        n_trials = 20
-        if is_mixture:
-            prob_dist_params = np.hstack((np.einsum('ijd->idj', mean_req[:, :, np.newaxis]),
-                                          np.einsum('ijd->idj', sig_req[:, :, np.newaxis])))
-            mixture_list = list()
-            for i_sp in range(n_sp):
-                mixture_list.append(mixture(prob_dist_params[:, :, i_sp], weights=scenario_weights, each=norm))
-            m = multivariate_nataf(mixture_list, cov_req / np.einsum('ij,ik->jki', sig_req, sig_req))
-            gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
+        if np.all(cov_req == 0):
+            deterministic = True
         else:
-            prob_dist_list = list()
-            for i_sp in range(n_sp):
-                prob_dist_list.append(norm(mean_req[0, i_sp], sig_req[0, i_sp]))
-            corr_matrix = cov_req[:, :, 0] / np.einsum('i,j->ij', sig_req_exact, sig_req_exact)
-            np.fill_diagonal(corr_matrix, 1.0)
-            m = multivariate_nataf(prob_dist_list, corr_matrix, corr_matrix_z=corr_matrix)
-            gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
+            deterministic = False
 
-        # gms : (n_gm : 0, n_trials: 1, n_sp: 2)
-        # to
-        # gms : (n_gm, n_sp, n_trials)
-        gms = gms.transpose((0, 2, 1))
-        dev_mean_sim = dev_weights[0] * np.sum(np.square(np.mean(np.log(gms), axis=0).T - mean_req_exact), axis=1)
-        dev_skew_sim = 0.1 * (dev_weights[0] + dev_weights[1]) * np.sum(np.square(skew(np.log(gms), axis=0).T), axis=1)
-        dev_sig_sim = dev_weights[1] * np.sum(np.square(np.std(np.log(gms), axis=0).T - sig_req_exact), axis=1)
-        dev_total_sim = dev_mean_sim + dev_sig_sim + dev_skew_sim
-        gm = gms[:, :, np.argmin(np.abs(dev_total_sim))]
+        if not deterministic:
+            ind = np.where(np.all(cov_req[:, :, 0] == 0, axis=1))[0][0]
+            cov_req = np.delete(np.delete(cov_req, ind, axis=0), ind, axis=1)
+            mean_req = np.delete(mean_req, ind, axis=1)
+            spectral_periods = np.delete(spectral_periods, ind)
+
+            if mean_req.shape[0] > 1 and cov_req.shape[2] > 1:
+                is_mixture = True
+            else:
+                is_mixture = False
+
+            if is_mixture:
+                scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
+                threshold = 1.0e-5
+                scenario_mask = scenario_weights >= threshold
+                scenario_weights = scenario_weights[scenario_mask]
+                scenario_weights = scenario_weights / np.sum(scenario_weights)
+                cov_req = cov_req[:, :, scenario_mask]
+                mean_req = mean_req[scenario_mask, :]
+                sig_req = np.sqrt(np.einsum('iik->ki', cov_req))
+                mean_req_exact, sig_req_exact = Utility.get_exact_mixture_params(mean_req, sig_req, scenario_weights)
+                mean_req_exact = mean_req_exact.flatten()
+                sig_req_exact = sig_req_exact.flatten()
+            else:
+                scenario_weights = [1.0]
+                mean_req_exact = mean_req[0, :]
+                sig_req = np.sqrt(np.diag(cov_req[:, :, 0]))[np.newaxis, :]
+                sig_req_exact = sig_req.flatten()
+
+            n_sp = len(spectral_periods)
+
+            # Simulate realizations of ground motion spectra
+            n_trials = 20
+            if is_mixture:
+                prob_dist_params = np.hstack((np.einsum('ijd->idj', mean_req[:, :, np.newaxis]),
+                                              np.einsum('ijd->idj', sig_req[:, :, np.newaxis])))
+                mixture_list = list()
+                for i_sp in range(n_sp):
+                    mixture_list.append(mixture(prob_dist_params[:, :, i_sp], weights=scenario_weights, each=norm))
+                m = multivariate_nataf(mixture_list, cov_req / np.einsum('ij,ik->jki', sig_req, sig_req))
+                gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
+            else:
+                prob_dist_list = list()
+                for i_sp in range(n_sp):
+                    prob_dist_list.append(norm(mean_req[0, i_sp], sig_req[0, i_sp]))
+                corr_matrix = cov_req[:, :, 0] / np.einsum('i,j->ij', sig_req_exact, sig_req_exact)
+                np.fill_diagonal(corr_matrix, 1.0)
+                m = multivariate_nataf(prob_dist_list, corr_matrix, corr_matrix_z=corr_matrix)
+                gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
+
+            # gms : (n_gm : 0, n_trials: 1, n_sp: 2)
+            # to
+            # gms : (n_gm, n_sp, n_trials)
+            gms = gms.transpose((0, 2, 1))
+            dev_mean_sim = dev_weights[0] * np.sum(np.square(np.mean(np.log(gms), axis=0).T - mean_req_exact), axis=1)
+            dev_skew_sim = 0.1 * (dev_weights[0] + dev_weights[1]) * np.sum(np.square(skew(np.log(gms), axis=0).T), axis=1)
+            dev_sig_sim = dev_weights[1] * np.sum(np.square(np.std(np.log(gms), axis=0).T - sig_req_exact), axis=1)
+            dev_total_sim = dev_mean_sim + dev_sig_sim + dev_skew_sim
+            gm = gms[:, :, np.argmin(np.abs(dev_total_sim))]
+
+        else:
+            mean_req_exact = mean_req[0, :]
+            sig_req_exact = np.zeros(len(mean_req_exact))
+            gm = np.repeat(np.exp(mean_req_exact)[np.newaxis, :], n_gm, axis=0)
+            n_loop = 0
 
         sample_big, scale_fac, mean_req_exact, sig_req_exact, gm = self.setup_psa_spectra_gms(mrp, for_which,
                                                                                               mean_req_exact,
@@ -492,13 +508,15 @@ class Sa(IM):
 
         median_req_exact = np.exp(mean_req_exact)
         target_median = median_req_exact
-        target_std = sig_req_exact
         mean_req_exact = np.log(median_req_exact)
-        target_k_lower = np.exp(mean_req_exact - k * target_std)
-        target_k_upper = np.exp(mean_req_exact + k * target_std)
         ax.plot(spectral_periods, target_median, color=lc, linestyle='-', linewidth=lw)
-        ax.plot(spectral_periods, target_k_lower, color=lc, linestyle='-', linewidth=lw)
-        ax.plot(spectral_periods, target_k_upper, color=lc, linestyle='-', linewidth=lw)
+
+        if not np.all(sig_req_exact == 0):
+            target_std = sig_req_exact
+            target_k_lower = np.exp(mean_req_exact - k * target_std)
+            target_k_upper = np.exp(mean_req_exact + k * target_std)
+            ax.plot(spectral_periods, target_k_lower, color=lc, linestyle='-', linewidth=lw)
+            ax.plot(spectral_periods, target_k_upper, color=lc, linestyle='-', linewidth=lw)
 
         im_value = self.get_inv_seismic_hazard(mrp, for_which)
         ax.plot(spectral_periods, im_value * np.ones(len(spectral_periods)),
@@ -547,8 +565,6 @@ class Sa(IM):
         structure = self.structure
         site_hazard_info = structure.get_site_hazard_info()
         scenario_data = site_hazard_info['scenario_data']
-        mag = scenario_data['mag']
-        dist = scenario_data['dist']
         scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
 
         med_sa_spectrum, sig_ln_sa_spectrum = self._evaluate_gmm(spectral_periods)  # (n_s, n_sp), (n_s, n_sp)
@@ -562,12 +578,13 @@ class Sa(IM):
             sig_ln_sa_spectrum = sig_ln_sa_spectrum.ravel()
 
         if scenario == 'mean':
-            mag_mean = np.sum(mag * scenario_weights)
-            dist_mean = np.sum(dist * scenario_weights)
-            scenario_data = {key: scenario_data[key] for key in scenario_data.keys() if key not in ['mag', 'dist']}
-            med_sa_spectrum, sig_ln_sa_spectrum = self._gmm(mag_mean, dist_mean,
-                                                            self.get_reqd_dist_param_names(),
-                                                            scenario_data, spectral_periods)
+            numeric_params = [param.name for param in self.gmm.PARAMS if param.__class__.__name__ == 'NumericParameter']
+            mean_scenario = {numeric_param: np.sum(scenario_data[numeric_param] * scenario_weights) for numeric_param in numeric_params}
+            stacked = np.column_stack([scenario_data[numeric_param] for numeric_param in numeric_params])
+            mean_array = np.array(list(mean_scenario.values()))[np.newaxis, :]
+            mean_ind = np.argmin(np.sum((stacked - mean_array) ** 2, axis=1))
+            mean_scenario = {**mean_scenario, **{key: scenario_data[key][mean_ind] for key in scenario_data.keys() if key not in numeric_params}}
+            med_sa_spectrum, sig_ln_sa_spectrum = self._gmm(mean_scenario, spectral_periods)
 
         if scenario == 'median':
             ind = np.argmin(np.abs(np.cumsum(scenario_weights) - 0.50))
@@ -612,8 +629,6 @@ class Sa(IM):
         structure = self.structure
         site_hazard_info = structure.get_site_hazard_info()
         scenario_data = site_hazard_info['scenario_data']
-        mag = scenario_data['mag']
-        dist = scenario_data['dist']
         scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
 
         ind = 0
@@ -627,12 +642,13 @@ class Sa(IM):
                                                                            uncondition=False)
 
             if scenario == 'mean':
-                mag_mean = np.sum(mag * scenario_weights)
-                dist_mean = np.sum(dist * scenario_weights)
-                scenario_data = {key: scenario_data[key] for key in scenario_data.keys() if key not in ['mag', 'dist']}
-                med_sa_spectrum, sig_ln_sa_spectrum = self._gmm(mag_mean, dist_mean,
-                                                                self.get_reqd_dist_param_names(),
-                                                                scenario_data, spectral_periods)
+                numeric_params = [param.name for param in self.gmm.PARAMS if param.__class__.__name__ == 'NumericParameter']
+                mean_scenario = {numeric_param: np.sum(scenario_data[numeric_param] * scenario_weights) for numeric_param in numeric_params}
+                stacked = np.column_stack([scenario_data[numeric_param] for numeric_param in numeric_params])
+                mean_array = np.array(list(mean_scenario.values()))[np.newaxis, :]
+                mean_ind = np.argmin(np.sum((stacked - mean_array) ** 2, axis=1))
+                mean_scenario = {**mean_scenario, **{key: scenario_data[key][mean_ind] for key in scenario_data.keys() if key not in numeric_params}}
+                med_sa_spectrum, sig_ln_sa_spectrum = self._gmm(mean_scenario, spectral_periods)
                 mean_req, cov_req, spectral_periods = self._get_target_spectrum(mrp, for_which,
                                                                                 med_sa_spectrum[np.newaxis, :],
                                                                                 sig_ln_sa_spectrum[np.newaxis, :],

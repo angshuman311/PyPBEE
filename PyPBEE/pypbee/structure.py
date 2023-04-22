@@ -121,42 +121,45 @@ class Structure:
         else:
             d0[f'{max_design_num + 1}'] = ['non-gp']
 
-    def set_site_hazard_info(self):
-        site_hazard_info_dir_path = Utility.get_path(self.model_files_path, 'Site_Hazard')
+    def set_site_hazard_info(self, im):
+        if im.gmm.NAME == 'Boore and Atkinson (2008)':
+            site_hazard_info_dir_path = Utility.get_path(self.model_files_path, 'Site_Hazard')
 
-        # Get scenario data
-        scenario_data = Utility.read_numpy_array_from_txt_file(
-            Utility.get_path(site_hazard_info_dir_path, 'deagg_data_small_sa.txt'), skiprows='find')
+            # Get scenario data
+            scenario_data = Utility.read_numpy_array_from_txt_file(
+                Utility.get_path(site_hazard_info_dir_path, 'deagg_data_small_sa.txt'), skiprows='find')
 
-        # Eliminate 0 contrib scenarios
-        scenario_data = scenario_data[scenario_data[:, -1] != 0, :]
+            # Eliminate 0 contrib scenarios
+            scenario_data = scenario_data[scenario_data[:, -1] != 0, :]
 
-        # Eliminate dist > 300 km scenarios
-        scenario_data = scenario_data[scenario_data[:, 0] <= 300, :]
+            # Eliminate dist > 300 km scenarios
+            scenario_data = scenario_data[scenario_data[:, 0] <= 300, :]
 
-        # scenario_data = [dist mag contrib]
-        scenario_data = np.array([scenario_data[:, 0], scenario_data[:, 1], scenario_data[:, -1]]).T
+            # scenario_data = [dist mag contrib]
+            scenario_data = np.array([scenario_data[:, 0], scenario_data[:, 1], scenario_data[:, -1]]).T
 
-        with open(Utility.get_path(site_hazard_info_dir_path, 'deagg_summary_small_sa.txt'), 'r') as fid:
-            curr_line = fid.readline()
+            with open(Utility.get_path(site_hazard_info_dir_path, 'deagg_summary_small_sa.txt'), 'r') as fid:
+                curr_line = fid.readline()
 
-        hazard_prob_exceedance = float(curr_line.split(')')[0].split()[-1])
-        # TODO: include T in formula
-        hazard_mar = -np.log(1 - hazard_prob_exceedance)
+            hazard_prob_exceedance = float(curr_line.split(')')[0].split()[-1])
+            # TODO: include T in formula
+            hazard_mar = -np.log(1 - hazard_prob_exceedance)
 
-        scenario_data[:, -1] = (scenario_data[:, -1] / 100) * hazard_mar
+            scenario_data[:, -1] = (scenario_data[:, -1] / 100) * hazard_mar
 
-        site_hazard_info = dict()
-        site_hazard_info['scenario_rate'] = scenario_data[:, -1]
-        site_hazard_info['scenario_data'] = dict()
-        site_hazard_info['scenario_data']['mag'] = scenario_data[:, 1]
-        site_hazard_info['scenario_data']['dist'] = scenario_data[:, 0]
-        site_hazard_info['scenario_data']['v_s30'] = self.location_info['v_s30']
-        site_hazard_info['scenario_data']['mechanism'] = self.location_info['mechanism']
-        site_hazard_info['scenario_data']['region'] = self.location_info['region']
+            param_names = im.get_gmm_param_names()
 
-        Utility.pickle_dump_dict(Utility.get_path(site_hazard_info_dir_path, 'site_hazard_info.pickle'),
-                                 site_hazard_info)
+            site_hazard_info = dict()
+            site_hazard_info['scenario_rate'] = scenario_data[:, -1]
+            site_hazard_info['scenario_data'] = dict()
+            site_hazard_info['scenario_data'][param_names[0]] = scenario_data[:, 1]
+            site_hazard_info['scenario_data'][param_names[1]] = scenario_data[:, 0]
+            site_hazard_info['scenario_data'][param_names[2]] = np.array([self.location_info['v_s30']] * scenario_data.shape[0])
+            site_hazard_info['scenario_data'][param_names[3]] = np.array([self.location_info['mechanism']] * scenario_data.shape[0])
+            site_hazard_info['scenario_data']['region'] = np.array([self.location_info['region']] * scenario_data.shape[0])
+
+            Utility.pickle_dump_dict(Utility.get_path(site_hazard_info_dir_path, 'site_hazard_info.pickle'),
+                                     site_hazard_info)
 
         return
 

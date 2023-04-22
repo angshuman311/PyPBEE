@@ -146,9 +146,9 @@ class AvgSa(Sa):
         if plot_all:
             period_range = self.evaluate_period(for_which)
             shc = export_mat_dict['shc']
-            med_sa_periods, sig_ln_sa_periods = self._evaluate_gmm(period_range)
+            shc_list = self.shc_at_periods(period_range, im_input=shc[:, 0])
             for itr in range(len(period_range)):
-                shc_individual = self._compute_seismic_hazard_integral(med_sa_periods[:, itr], sig_ln_sa_periods[:, itr], shc[:, 0])['seismic_hazard_curve']
+                shc_individual = shc_list[itr]
                 ax.loglog(shc_individual[:, 0], shc_individual[:, 1], '-',
                           color=0.5 * (np.ones(3) - np.array(colors.to_rgb(lc))), alpha=0.5, linewidth=lw / 2)
                 export_mat_dict[f'shc_individual_{itr + 1}'] = shc_individual

@@ -57,7 +57,7 @@ class PSHA(Analysis):
 
     def stage(self, analysis_case, design_num_list):
 
-        self.structure.set_site_hazard_info()
+        self.structure.set_site_hazard_info(self.im)
 
         results_dir_path = self.get_results_dir_path()
 

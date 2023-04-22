@@ -199,13 +199,11 @@ class IM(ABC):
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    def get_reqd_dist_param_names(self):
+    def get_gmm_param_names(self):
         gmm = self.gmm
         params = gmm.PARAMS
-        reqd_dist_param_names = [param.name for param in params if 'dist' in param.name and param.required]
-        if 'dist_jb' not in reqd_dist_param_names:
-            reqd_dist_param_names.append('dist_jb')
-        return reqd_dist_param_names
+        reqd_param_names = [param.name for param in params]
+        return reqd_param_names
 
     # ------------------------------------------------------------------------------------------------------------------
 
