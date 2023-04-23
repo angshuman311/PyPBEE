@@ -5,7 +5,7 @@ Created on Thu Nov  7 14:53:16 2019
 @author: Angshuman Deb
 """
 
-from create_objects_local import osb, analysis_case, rng_seed, \
+from create_objects import osb, analysis_case, rng_seed, \
     gm_database_dir_path, local_bash_path, \
     design_num_list, haz_lev_list, mrp_list, n_gm_list, im_input, spectral_periods, delta_input_list, \
     prelim_analysis, psha, gms, nltha, psdemha, psdamha, \

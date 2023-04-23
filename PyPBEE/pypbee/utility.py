@@ -112,7 +112,7 @@ class Utility:
                 axs[itr].set_title(gm_file_names[itr] + f', scale: {scale_fac:.3}', fontsize=fs)
                 axs[itr].tick_params(axis='x', labelsize=fs)
                 axs[itr].tick_params(axis='y', labelsize=fs)
-                Utility.mark_max_in_time_hist(axs[itr], gm, t, max_marker,
+                Utility.mark_max_in_time_hist(axs[itr], gm * scale_fac, t, max_marker,
                                               markeredgecolor=mec,
                                               markersize=ms,
                                               precision=max_text_precision,
