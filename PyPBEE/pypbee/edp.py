@@ -169,7 +169,8 @@ class EDP(ABC):
         return rec_save_dir_path
 
     def compute_demand_hazard_integral(self, for_which, haz_lev_list, im, n_gm_list=None, **kwargs):
-        delta_input = kwargs.get('delta_input', np.array([])).flatten()  # 1-d array
+        delta_input = kwargs.get('delta_input', np.array([]))
+        delta_input = np.array(delta_input).flatten()  # 1-d array
         min_max_scale_fac = kwargs.get('min_max_scale_fac', [1, 1])  # list
 
         dir_level_to_seek = 'Model_Realization_Num'

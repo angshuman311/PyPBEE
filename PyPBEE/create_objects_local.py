@@ -31,7 +31,7 @@ name = 'Bridge_A'
 analysis_case = '100'
 
 if analysis_case == '100':
-    n_gm_list = [100] * len(mrp_list)
+    n_gm_list = [50] * len(mrp_list)
 else:
     n_gm_list = [50] * len(mrp_list)
 

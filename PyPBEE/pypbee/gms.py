@@ -35,7 +35,7 @@ class GMS(Analysis):
     def run_parallel(setup_dir_path, get_target_spectrum, select_ground_motion_records,
                      haz_lev_list, mrp_list, n_gm_list,
                      rng_seed, set_rng_seed, seed_multiplier,
-                     uhs, uncondition, max_scale, min_scale, dev_weights, n_loop, penalty, is_scaled,
+                     uhs, deterministic, uncondition, max_scale, min_scale, dev_weights, n_loop, penalty, is_scaled,
                      not_allowed, classify_pulse, sampling_method, spectral_periods,
                      node_index, batch_index, analysis_index, run_case):
 
@@ -59,6 +59,7 @@ class GMS(Analysis):
                                                                   uncondition=uncondition,
                                                                   uhs=uhs)
         ground_motion_records = select_ground_motion_records(n_gm, mean_req, cov_req, spectral_periods, mrp, for_which,
+                                                             deterministic=deterministic,
                                                              rng_seed=rng_seed_send,
                                                              max_scale=max_scale,
                                                              min_scale=min_scale,
@@ -168,6 +169,7 @@ class GMS(Analysis):
         sampling_method = kwargs.get('sampling_method', 'mcs')
         spectral_periods = kwargs.get('spectral_periods', np.array([]))
         uhs = kwargs.get('uhs', False)
+        deterministic = kwargs.get('deterministic', False)
 
         im = self.im
         get_target_spectrum = im.get_target_spectrum
@@ -189,7 +191,7 @@ class GMS(Analysis):
         to_run = partial(GMS.run_parallel, setup_dir_path, get_target_spectrum, select_ground_motion_records,
                          haz_lev_list, mrp_list, n_gm_list,
                          rng_seed, set_rng_seed, seed_multiplier,
-                         uhs, uncondition, max_scale, min_scale, dev_weights, n_loop, penalty, is_scaled,
+                         uhs, deterministic, uncondition, max_scale, min_scale, dev_weights, n_loop, penalty, is_scaled,
                          not_allowed, classify_pulse, sampling_method, spectral_periods,
                          node_index, batch_index)
 

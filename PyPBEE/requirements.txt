@@ -8,3 +8,4 @@ xlrd
 eqsig
 openpyxl
 python-benedict
+numba

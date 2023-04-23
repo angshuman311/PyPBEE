@@ -136,7 +136,7 @@ class SaT(Sa):
         lc = kwargs.get('period_lc', 'black')
         lw = kwargs.get('period_lw', 1)
         period = self.evaluate_period(for_which)
-        ylim = ax.get_ylim()
+        ylim = Utility.get_ylim(ax, (0.01, None))
         if '3D' in ax.__class__.__name__:
             ax.plot([period] * 2, ylim, 0, color=lc, linestyle='-', linewidth=lw)
         else:

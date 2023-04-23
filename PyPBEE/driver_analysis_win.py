@@ -17,20 +17,20 @@ from create_objects_local import osb, analysis_case, rng_seed, \
 
 if __name__ == "__main__":
 
-    pool_size = 10
-    gms_n_loop = 2
+    pool_size = 1
+    gms_n_loop = 10
 
     # prelim_analysis.setup(analysis_case, design_num_list, rng_seed=rng_seed)
     # prelim_analysis.run(analysis_case, pool_size)
     # prelim_analysis.wrap_up(analysis_case)
 
-    psha.setup(analysis_case, design_num_list)
-    psha.run(analysis_case, pool_size, im_input=im_input)
-    psha.wrap_up(analysis_case)
+    # psha.setup(analysis_case, design_num_list)
+    # psha.run(analysis_case, pool_size, im_input=im_input)
+    # psha.wrap_up(analysis_case)
 
     #
     gms.setup(analysis_case, design_num_list, haz_lev_list, mrp_list, n_gm_list)
-    gms.run(analysis_case, pool_size, spectral_periods=spectral_periods, n_loop=gms_n_loop, rng_seed=rng_seed, uhs=True)
+    gms.run(analysis_case, pool_size, spectral_periods=spectral_periods, n_loop=gms_n_loop, rng_seed=rng_seed, uhs=False, deterministic=False)
     gms.wrap_up(analysis_case)
     #
     # nltha.extract_single_run(['100', '1', '1', '1', '1', '1'], prelim_analysis.num_modes, gm_database_dir_path)

@@ -20,6 +20,7 @@ import scipy.io as sio
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from numba import jit
 
 
 class Sa(IM):
@@ -60,7 +61,10 @@ class Sa(IM):
     ####################################################################################################################
 
     def shc_at_periods(self, periods, **kwargs):
-        im_input = kwargs.get('im_input', np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True))
+        im_input = kwargs.get('im_input', np.array([]))
+        im_input = np.array(im_input).flatten()
+        if im_input.size == 0:
+            im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
         med_sa_periods, sig_ln_sa_periods = self._evaluate_gmm(periods)
         shc_list = []
         for itr in range(len(periods)):
@@ -80,8 +84,9 @@ class Sa(IM):
         not_allowed = kwargs.get('not_allowed', [])
         classify_pulse = kwargs.get('classify_pulse', True)
         sampling_method = kwargs.get('sampling_method', 'mcs')
+        deterministic = kwargs.get('deterministic', False)
 
-        ground_motion_records = self._select_ground_motion_records(n_gm, mean_req, cov_req, mrp, for_which,
+        ground_motion_records = self._select_ground_motion_records(deterministic, n_gm, mean_req, cov_req, mrp, for_which,
                                                                    spectral_periods,
                                                                    rng_seed, max_scale, min_scale, dev_weights, n_loop,
                                                                    penalty, is_scaled, not_allowed, classify_pulse,
@@ -93,11 +98,11 @@ class Sa(IM):
 
     def get_target_spectrum(self, mrp, for_which, **kwargs):
         uncondition = kwargs.get('uncondition', True)
-        spectral_periods = kwargs.get('spectral_periods', np.array([])).flatten()  # 1-d array
-        uhs = kwargs.get('uhs', False)
-
+        spectral_periods = kwargs.get('spectral_periods', np.array([]))
+        spectral_periods = np.array(spectral_periods).flatten()
         if spectral_periods.size == 0:
             spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
+        uhs = kwargs.get('uhs', False)
 
         spectral_periods = Utility.merge_sorted_1d_arrays(spectral_periods, self.evaluate_period(for_which))
         if uhs:
@@ -114,7 +119,10 @@ class Sa(IM):
     # ------------------------------------------------------------------------------------------------------------------
 
     def compute_seismic_hazard_integral(self, for_which, **kwargs):
-        im_input = kwargs.get('im_input', np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True))
+        im_input = kwargs.get('im_input', np.array([]))
+        im_input = np.array(im_input).flatten()
+        if im_input.size == 0:
+            im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
 
         dir_level_to_seek = 'Model_Realization_Num'
         for_which = Structure.get_modified_for_which(for_which, dir_level_to_seek)
@@ -128,8 +136,16 @@ class Sa(IM):
     # ------------------------------------------------------------------------------------------------------------------
 
     def uniform_hazard_spectrum(self, mrp, **kwargs):
-        spectral_periods = kwargs.get('spectral_periods', np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True))
-        im_input = kwargs.get('im_input', np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True))
+        spectral_periods = kwargs.get('spectral_periods', np.array([]))
+        spectral_periods = np.array(spectral_periods).flatten()
+        if spectral_periods.size == 0:
+            spectral_periods = np.logspace(np.log10(0.05), np.log10(5), 50, endpoint=True)
+
+        im_input = kwargs.get('im_input', np.array([]))
+        im_input = np.array(im_input).flatten()
+        if im_input.size == 0:
+            im_input = np.logspace(np.log10(1e-4), np.log10(5), 1000, endpoint=True)
+
         uhs = []
         shc_list = self.shc_at_periods(spectral_periods, im_input=im_input)
         for itr in range(len(spectral_periods)):
@@ -214,7 +230,7 @@ class Sa(IM):
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    def _select_ground_motion_records(self, n_gm, mean_req, cov_req, mrp, for_which, spectral_periods,
+    def _select_ground_motion_records(self, deterministic, n_gm, mean_req, cov_req, mrp, for_which, spectral_periods,
                                       rng_seed, max_scale, min_scale, dev_weights, n_loop,
                                       penalty, is_scaled, not_allowed, classify_pulse, sampling_method):
 
@@ -231,45 +247,47 @@ class Sa(IM):
         not_allowed_ind = np.unique([i - 1 for i in [*not_allowed_rec_num, *not_allowed]])
         pulse_like_records = rec_data['pulse_like_records']
 
+        if deterministic:
+            cov_req[...] = 0
+
         if np.all(cov_req == 0):
             deterministic = True
         else:
             deterministic = False
 
+        if mean_req.shape[0] > 1 and cov_req.shape[2] > 1:
+            is_mixture = True
+        else:
+            is_mixture = False
+
+        if is_mixture:
+            scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
+            threshold = 1.0e-5
+            scenario_mask = scenario_weights >= threshold
+            scenario_weights = scenario_weights[scenario_mask]
+            scenario_weights = scenario_weights / np.sum(scenario_weights)
+        else:
+            scenario_weights = np.array([1.0])
+            scenario_mask = np.array([True])
+
         if not deterministic:
+            # 2 options:
+            # 1. mixture CMS
+            # 2. non-mixture CMS
             ind = np.where(np.all(cov_req[:, :, 0] == 0, axis=1))[0][0]
             cov_req = np.delete(np.delete(cov_req, ind, axis=0), ind, axis=1)
             mean_req = np.delete(mean_req, ind, axis=1)
             spectral_periods = np.delete(spectral_periods, ind)
-
-            if mean_req.shape[0] > 1 and cov_req.shape[2] > 1:
-                is_mixture = True
-            else:
-                is_mixture = False
-
+            n_sp = len(spectral_periods)
+            # Simulate realizations of ground motion spectra
+            n_trials = 20
             if is_mixture:
-                scenario_weights = self.get_seismic_hazard_deagg(mrp, for_which)
-                threshold = 1.0e-5
-                scenario_mask = scenario_weights >= threshold
-                scenario_weights = scenario_weights[scenario_mask]
-                scenario_weights = scenario_weights / np.sum(scenario_weights)
                 cov_req = cov_req[:, :, scenario_mask]
                 mean_req = mean_req[scenario_mask, :]
                 sig_req = np.sqrt(np.einsum('iik->ki', cov_req))
                 mean_req_exact, sig_req_exact = Utility.get_exact_mixture_params(mean_req, sig_req, scenario_weights)
                 mean_req_exact = mean_req_exact.flatten()
                 sig_req_exact = sig_req_exact.flatten()
-            else:
-                scenario_weights = [1.0]
-                mean_req_exact = mean_req[0, :]
-                sig_req = np.sqrt(np.diag(cov_req[:, :, 0]))[np.newaxis, :]
-                sig_req_exact = sig_req.flatten()
-
-            n_sp = len(spectral_periods)
-
-            # Simulate realizations of ground motion spectra
-            n_trials = 20
-            if is_mixture:
                 prob_dist_params = np.hstack((np.einsum('ijd->idj', mean_req[:, :, np.newaxis]),
                                               np.einsum('ijd->idj', sig_req[:, :, np.newaxis])))
                 mixture_list = list()
@@ -278,6 +296,9 @@ class Sa(IM):
                 m = multivariate_nataf(mixture_list, cov_req / np.einsum('ij,ik->jki', sig_req, sig_req))
                 gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
             else:
+                mean_req_exact = mean_req[0, :]
+                sig_req = np.sqrt(np.diag(cov_req[:, :, 0]))[np.newaxis, :]
+                sig_req_exact = sig_req.flatten()
                 prob_dist_list = list()
                 for i_sp in range(n_sp):
                     prob_dist_list.append(norm(mean_req[0, i_sp], sig_req[0, i_sp]))
@@ -285,7 +306,6 @@ class Sa(IM):
                 np.fill_diagonal(corr_matrix, 1.0)
                 m = multivariate_nataf(prob_dist_list, corr_matrix, corr_matrix_z=corr_matrix)
                 gms = np.exp(m.rvs(size=(n_gm, n_trials), random_state=rng_seed, method=sampling_method))
-
             # gms : (n_gm : 0, n_trials: 1, n_sp: 2)
             # to
             # gms : (n_gm, n_sp, n_trials)
@@ -295,12 +315,20 @@ class Sa(IM):
             dev_sig_sim = dev_weights[1] * np.sum(np.square(np.std(np.log(gms), axis=0).T - sig_req_exact), axis=1)
             dev_total_sim = dev_mean_sim + dev_sig_sim + dev_skew_sim
             gm = gms[:, :, np.argmin(np.abs(dev_total_sim))]
-
         else:
-            mean_req_exact = mean_req[0, :]
-            sig_req_exact = np.zeros(len(mean_req_exact))
+            # 3 options:
+            # 1. mixture CMS
+            # 2. non-mixture CMS
+            # 3. UHS (non-mixture by default), still calling the variable mean_req (abuse of notation)
+            if is_mixture:
+                mean_req = mean_req[scenario_mask, :]
+                mean_req_exact, sig_req_exact = Utility.get_exact_mixture_params(mean_req, np.zeros(mean_req.shape), scenario_weights)
+                mean_req_exact = mean_req_exact.flatten()
+                sig_req_exact = sig_req_exact.flatten()
+            else:
+                mean_req_exact = mean_req[0, :]
+                sig_req_exact = np.zeros(mean_req_exact.shape)
             gm = np.repeat(np.exp(mean_req_exact)[np.newaxis, :], n_gm, axis=0)
-            n_loop = 0
 
         sample_big, scale_fac, mean_req_exact, sig_req_exact, gm = self.setup_psa_spectra_gms(mrp, for_which,
                                                                                               mean_req_exact,
@@ -310,7 +338,6 @@ class Sa(IM):
                                                                                               is_scaled)
 
         # Find best matches to simulated spectra from ground motion database
-        n_big = sample_big.shape[0]
         rec_id = np.zeros(n_gm).astype(int) - 1  # 1-d array (-1 because 0 is a valid index in python)
         sample_small = np.zeros((n_gm, sample_big.shape[1]))
         final_scale_fac = np.ones(n_gm)  # 1-d array
@@ -344,54 +371,11 @@ class Sa(IM):
             sample_small[i, :] = np.log(np.exp(sample_big[rec_id[i], :]) * scale_fac[rec_id[i]])
 
         # Greedy subset modification procedure
-        for k in range(n_loop):
-            for i in range(n_gm):
-                min_id = i
-                min_dev = self.large_err
-                sample_small = np.delete(sample_small, i, axis=0)
-                rec_id = np.delete(rec_id, i, axis=0)
-
-                # Try to add a new spectra to the subset list
-                for j in range(n_big):
-
-                    if is_scaled:
-                        sample_small = np.vstack((sample_small, sample_big[j, :] + np.log(scale_fac[j])))
-                    else:
-                        sample_small = np.vstack((sample_small, sample_big[j, :]))
-
-                    # Compute deviations from target
-                    dev_mean = np.mean(sample_small, axis=0) - mean_req_exact
-                    dev_sig = np.std(sample_small, axis=0) - sig_req_exact
-                    dev_total = dev_weights[0] * np.sum(
-                        np.square(dev_mean)) + dev_weights[1] * np.sum(np.square(dev_sig))
-
-                    # Penalize bad spectra (set penalty to zero if this is not required)
-                    for m in range(sample_small.shape[0]):
-                        dev_total += np.sum(
-                            np.exp(sample_small[m, :]) > np.exp(mean_req_exact + 3. * sig_req_exact)
-                        ) * penalty
-
-                    if is_scaled:
-                        if scale_fac[j] > max_scale or scale_fac[j] < min_scale or soil_vs_30[j] == -1 or any(
-                                [r == j for r in not_allowed_ind]):
-                            dev_total += self.large_err
-                    else:
-                        if soil_vs_30[j] == -1 or any([r == j for r in not_allowed_ind]):
-                            dev_total += self.large_err
-
-                    # Should cause improvement and record should not be repeated
-                    if dev_total < min_dev and not any(rec_id == j):
-                        min_id = j
-                        min_dev = dev_total
-                    sample_small = np.delete(sample_small, sample_small.shape[0] - 1, axis=0)
-
-                # Add new element in the right slot
-                if is_scaled:
-                    final_scale_fac[i] = scale_fac[min_id]
-
-                sample_small = np.vstack(
-                    (sample_small[:i, :], sample_big[min_id, :] + np.log(scale_fac[min_id]), sample_small[i:, :]))
-                rec_id = np.hstack((rec_id[:i], min_id, rec_id[i:]))
+        rec_id, final_scale_fac = greedy(
+            n_loop, rec_id, sample_small, sample_big,
+            mean_req_exact, sig_req_exact, np.array(dev_weights), scale_fac, final_scale_fac,
+            deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, self.large_err
+        )
 
         final_rsn = rec_id + 1
         final_scale_factors = final_scale_fac
@@ -743,3 +727,72 @@ class Sa(IM):
         return fig, ax, export_mat_dict
 
     # ------------------------------------------------------------------------------------------------------------------
+
+
+@jit(nopython=True)
+def greedy(n_loop, rec_id, sample_small, sample_big,
+           mean_req_exact, sig_req_exact, dev_weights, scale_fac, final_scale_fac,
+           deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, large_err):
+    n_gm = sample_small.shape[0]
+    n_big = sample_big.shape[0]
+    for k in range(n_loop):
+        for i in range(n_gm):
+            min_id = i
+            min_dev = large_err
+            # sample_small = np.delete(sample_small, i, axis=0)
+            # rec_id = np.delete(rec_id, i, axis=0)
+            sample_small = np.concatenate((sample_small[:i, :], sample_small[i + 1:, :]), axis=0)
+            rec_id = np.concatenate((rec_id[:i], rec_id[i + 1:]), axis=0)
+
+            # Try to add a new spectra to the subset list
+            for j in range(n_big):
+                temp_sample_small = np.zeros((sample_small.shape[0] + 1, sample_small.shape[1]))
+                temp_sample_small[:-1, :] = sample_small
+                if is_scaled:
+                    # sample_small = np.vstack((sample_small, sample_big[j, :] + np.log(scale_fac[j])))
+                    temp_sample_small[-1, :] = sample_big[j, :] + np.log(scale_fac[j])
+                else:
+                    # sample_small = np.vstack((sample_small, sample_big[j, :]))
+                    temp_sample_small[-1, :] = sample_big[j, :]
+                sample_small = temp_sample_small
+
+                # Compute deviations from target
+                sample_mean = np.sum(sample_small, axis=0) / sample_small.shape[0]
+                dev_mean = sample_mean - mean_req_exact
+                if not deterministic:
+                    sample_std = np.sqrt(np.sum(np.square(sample_small - sample_mean), axis=0) / (sample_small.shape[0] - 1))
+                    dev_sig = sample_std - sig_req_exact
+                    dev_total = dev_weights[0] * np.sum(np.square(dev_mean)) + dev_weights[1] * np.sum(np.square(dev_sig))
+                    # Penalize bad spectra (set penalty to zero if this is not required)
+                    if penalty != 0:
+                        for m in range(sample_small.shape[0]):
+                            dev_total += np.sum(
+                                np.exp(sample_small[m, :]) > np.exp(mean_req_exact + 3. * sig_req_exact)
+                            ) * penalty
+                else:
+                    dev_total = dev_weights[0] * np.sum(np.square(dev_mean))
+
+                if is_scaled:
+                    if scale_fac[j] > max_scale or scale_fac[j] < min_scale or soil_vs_30[j] == -1 or np.any(not_allowed_ind == j):
+                        dev_total += large_err
+                else:
+                    if soil_vs_30[j] == -1 or np.any(not_allowed_ind == j):
+                        dev_total += large_err
+
+                # Should cause improvement and record should not be repeated
+                if dev_total < min_dev and not np.any(rec_id == j):
+                    min_id = j
+                    min_dev = dev_total
+                # sample_small = np.delete(sample_small, sample_small.shape[0] - 1, axis=0)
+                sample_small = sample_small[:-1, :]
+
+            # Add new element in the right slot
+            if is_scaled:
+                final_scale_fac[i] = scale_fac[min_id]
+
+            # sample_small = np.vstack((sample_small[:i, :], sample_big[min_id, :] + np.log(scale_fac[min_id]), sample_small[i:, :]))
+            # rec_id = np.hstack((rec_id[:i], min_id, rec_id[i:]))
+            to_add = sample_big[min_id, :] + np.log(scale_fac[min_id])
+            sample_small = np.concatenate((sample_small[:i, :], np.expand_dims(to_add, axis=0), sample_small[i:, :]), axis=0)
+            rec_id = np.concatenate((rec_id[:i], np.array([min_id]).astype(rec_id.dtype), rec_id[i:]), axis=0)
+    return rec_id, final_scale_fac

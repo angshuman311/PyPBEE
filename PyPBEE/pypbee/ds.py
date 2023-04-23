@@ -68,7 +68,8 @@ class DS:
                 psdemha_results = edp.get_psdemha_results(Structure.get_modified_for_which(for_which, 'Design_Num'))
                 psdemha_results_for_which = psdemha_results[run_case_str]
             elif isinstance(im, IM) and isinstance(haz_lev_list, Sequence):
-                delta_input = kwargs.get('delta_input', np.array([])).flatten()  # 1-d array
+                delta_input = kwargs.get('delta_input', np.array([]))
+                delta_input = np.array(delta_input).flatten()  # 1-d array
                 min_max_scale_fac = kwargs.get('min_max_scale_fac', [1, 1])  # list
                 psdemha_results_for_which = edp.compute_demand_hazard_integral(for_which, haz_lev_list, im, n_gm_list,
                                                                                delta_input=delta_input,

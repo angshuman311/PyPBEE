@@ -1423,3 +1423,23 @@ class Utility:
         return dist(*params.T)
 
     # ------------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def get_ylim(ax, thresh):
+        y_lim_0 = np.inf
+        y_lim_1 = -np.inf
+        for line in ax.lines:
+            curr_min = np.min(line.get_data()[1])
+            curr_max = np.max(line.get_data()[1])
+            if curr_min < y_lim_0:
+                y_lim_0 = curr_min
+            if curr_max > y_lim_1:
+                y_lim_1 = curr_max
+        ylim = ax.get_ylim()
+        if thresh[0] is not None and thresh[1] is None:
+            ylim = (y_lim_0 * thresh[0], ylim[1])
+        elif thresh[0] is None and thresh[1] is not None:
+            ylim = (ylim[0], y_lim_1 * thresh[1])
+        elif thresh[0] is not None and thresh[1] is not None:
+            ylim = (y_lim_0 * thresh[0], y_lim_1 * thresh[1])
+        return ylim

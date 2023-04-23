@@ -166,7 +166,7 @@ class AvgSa(Sa):
         patch_alpha = kwargs.get('period_patch_alpha', 0.25)
         patch_color = kwargs.get('period_patch_color', (0, 1, 0))
         period_range = self.evaluate_period(for_which)
-        ylim = ax.get_ylim()
+        ylim = Utility.get_ylim(ax, (0.01, None))
         rect = plt.Rectangle(
             (period_range[0], ylim[0]), period_range[-1] - period_range[0], ylim[1] - ylim[0],
             color=patch_color, alpha=patch_alpha
