@@ -1,5 +1,7 @@
 # PyPBEE
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [Performance-Based Earthquake Engineering (PBEE) for Python](https://github.com/angshuman311/PyPBEE/blob/master/About_PyPBEE/About_PyPBEE.pdf)
 
 # Related Publications
