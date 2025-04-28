@@ -496,7 +496,7 @@ class Structure:
         site_hazard_info = self.get_site_hazard_info()
         rate = site_hazard_info['scenario_rate']
         mag = site_hazard_info['scenario_data']['mag']
-        dist = site_hazard_info['scenario_data']['dist']
+        dist = site_hazard_info['scenario_data'][[item for item in site_hazard_info['scenario_data'].keys() if 'dist' in item][0]]
 
         fig, ax, export_mat_dict = Utility.plot_3d_bar(mag, dist, rate,
                                                        figkwargs=figkwargs, cmap=cmap,

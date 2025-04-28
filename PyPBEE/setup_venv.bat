@@ -5,6 +5,7 @@ set ENV_NAME=pypbee
 
 REM Store the virtual environment in "venv\<ENV_NAME>"
 set ENV_FOLDER=venv\%ENV_NAME%
+set ENV_PYTHON=%ENV_FOLDER%\Scripts\python.exe
 
 REM Check if the specified Python executable exists
 if not exist "%PYTHON_PATH%" (
@@ -18,9 +19,13 @@ if not exist "venv" (
     mkdir venv
 )
 
-REM Create a virtual environment
-echo Creating virtual environment...
-"%PYTHON_PATH%" -m venv "%ENV_FOLDER%"
+REM Create the virtual environment if it doesn't already exist
+if not exist "%ENV_PYTHON%" (
+    echo Creating virtual environment...
+    "%PYTHON_PATH%" -m venv "%ENV_FOLDER%"
+) else (
+    echo Virtual environment already exists.
+)
 
 REM Activate the virtual environment
 echo Activating virtual environment...

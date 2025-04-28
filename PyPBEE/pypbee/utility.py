@@ -18,6 +18,7 @@ import xlrd
 import string
 import eqsig
 from datetime import datetime
+from benedict import benedict
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib import cm
@@ -263,6 +264,8 @@ class Utility:
 
     @staticmethod
     def pickle_dump_dict(file_path, dictionary):
+        if type(dictionary) == benedict:
+            dictionary = dict(dictionary)
         with open(file_path, 'wb') as f:
             pickle.dump(dictionary, f)
 
@@ -1427,13 +1430,23 @@ class Utility:
     def get_ylim(ax, thresh):
         y_lim_0 = np.inf
         y_lim_1 = -np.inf
+
         for line in ax.lines:
-            curr_min = np.min(line.get_data()[1])
-            curr_max = np.max(line.get_data()[1])
+            y_data = line.get_data()[1]
+            if y_data.size == 0:
+                continue  # Skip lines with no data
+            curr_min = np.min(y_data)
+            curr_max = np.max(y_data)
             if curr_min < y_lim_0:
                 y_lim_0 = curr_min
             if curr_max > y_lim_1:
                 y_lim_1 = curr_max
+
+        # If no valid data was found, return current ylim
+        if not np.isfinite(y_lim_0) or not np.isfinite(y_lim_1):
+            return ax.get_ylim()
+
+        # Apply thresholds
         ylim = ax.get_ylim()
         if thresh[0] is not None and thresh[1] is None:
             ylim = (y_lim_0 * thresh[0], ylim[1])
@@ -1441,4 +1454,5 @@ class Utility:
             ylim = (ylim[0], y_lim_1 * thresh[1])
         elif thresh[0] is not None and thresh[1] is not None:
             ylim = (y_lim_0 * thresh[0], y_lim_1 * thresh[1])
+
         return ylim
