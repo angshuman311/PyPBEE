@@ -1,13 +1,26 @@
-/Bridge_B/
-/Bridge_C/
-/Bridge_MAOC/
-/Bridge_*_Work_Dir/
-/Bridge_*_extract_*/
-/NGA_PEER_EQ_DB/
-/OpenSees_Windows/
-/PyPBEE/.idea/
-/PyPBEE/__pycache__/
-/PyPBEE/pypbee/__pycache__/
-/PyPBEE_Bridge_Models_Backup/
-/GIT-HOWTO-README.docx
-/PyPBEE/venv/
+# ─── Python build / packaging ────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+
+# ─── Virtual-envs ────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ─── Byte-code & cache ───────────────────────────────────────────────────
+__pycache__/
+
+# ─── IDE / Editor junk ───────────────────────────────────────────────────
+.idea/
+.vscode/
+
+# ─── Project-specific large / auxiliary dirs (keep out of wheels) ────────
+Bridge_*_Work_Dir/
+Bridge_*_extract_*/
+NGA_PEER_EQ_DB/
+OpenSees_Windows/
+
+# ─── databases, vendors ──────────────────────
+data/NGA_PEER_EQ_DB/
+vendor/**/*.exe
