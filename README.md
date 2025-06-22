@@ -74,4 +74,4 @@ Full, commented examples live in `examples/`.
 Development supported by **Caltrans (65A0594, Task 2880)**, **PEER Transportation Systems Research Program (Project #1147‑NCTRTE)**, and the **Reissner Chair, UC San Diego**. HPC tests used TACC resources.
 
 ## License
-This project is released under the [MIT License](LICENSE).
+This project is released under the [MIT License](LICENSE.md).
