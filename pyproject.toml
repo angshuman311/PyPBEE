@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name            = "pypbee"
+version         = "0.1.0"
+description     = "Performance-Based Earthquake Engineering toolkit"
+readme          = "README.md"
+requires-python = ">=3.9"
+license         = {file = "LICENSE.md"}
+authors         = [{name = "Angshuman Deb", email = "angshuman311@gmail.com"}]
+
+# ← drop your list here
+dependencies = [
+    "numpy~=1.22.0",
+    "scipy~=1.9.1",
+    "matplotlib~=3.5.2",
+    "pygmm~=0.6.5",
+    "numba~=0.55.1",
+    "pathos~=0.3.0",
+    "pydoe2~=1.3.0",
+    "xlrd~=2.0.1",
+    "eqsig~=1.2.10",
+    "openpyxl~=3.0.10",
+    "python-benedict==0.23.1",
+    "openseespy"            # leave unpinned unless you really need a specific build
+]
+
+[project.urls]
+Homepage = "https://github.com/angshuman311/PyPBEE"
