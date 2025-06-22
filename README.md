@@ -1,7 +1,7 @@
 # PyPBEE — Performance-Based Earthquake Engineering in Python
 A modular, high-performance framework that lets researchers and engineers run the full Performance-Based Earthquake Engineering (PBEE) workflow — from site‑specific seismic‑hazard curves to demand, damage and (soon) loss metrics — entirely in Python.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#license)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- Add CI, PyPI, or Docs badges here if applicable -->
 
 ---
