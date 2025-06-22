@@ -1,17 +1,18 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name            = "pypbee"
-version         = "0.1.0"
+version         = "0.1.0.post1"
 description     = "Performance-Based Earthquake Engineering toolkit"
 readme          = "README.md"
 requires-python = ">=3.9"
-license         = {file = "LICENSE.md"}
+
+license         = "MIT"                       # or BSD-3-Clause, etc.
+
 authors         = [{name = "Angshuman Deb", email = "angshuman311@gmail.com"}]
 
-# ← drop your list here
 dependencies = [
     "numpy~=1.22.0",
     "scipy~=1.9.1",
@@ -24,8 +25,12 @@ dependencies = [
     "eqsig~=1.2.10",
     "openpyxl~=3.0.10",
     "python-benedict==0.23.1",
-    "openseespy"            # leave unpinned unless you really need a specific build
+    "openseespy"              # keep unpinned for platform wheels
 ]
 
 [project.urls]
 Homepage = "https://github.com/angshuman311/PyPBEE"
+Issues   = "https://github.com/angshuman311/PyPBEE/issues"
+
+[tool.setuptools]
+packages = ["pypbee"]         # adjust if you renamed the folder

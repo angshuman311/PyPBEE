@@ -51,4 +51,4 @@ __all__ = [
 
 __author__ = 'Angshuman Deb'
 __title__ = 'pypbee'
-__version__ = '0.1.0'
+__version__ = "0.1.0.post1"
