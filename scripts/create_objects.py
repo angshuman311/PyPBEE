@@ -28,7 +28,7 @@ haz_lev_list = ['1', '2', '3', '4', '5', '6']
 mrp_list = [72, 224, 475, 975, 2475, 4975]
 
 name = 'Bridge_B'
-analysis_case = '100'
+analysis_case = '200'
 
 if analysis_case == '100':
     n_gm_list = [50] * len(mrp_list)
@@ -43,17 +43,17 @@ if analysis_case == '300':
     rng_seed = 4640
 
 base_dir_path = Utility.get_path(r"E:\PyPBEE")
-model_files_path = Utility.get_path(base_dir_path, name.replace('', ''))
+model_files_path = Utility.get_path(base_dir_path, 'examples', name.replace('', ''))
 model_work_dir_path = Utility.get_path(r"E:\PEER_UQ_Project_Work_Dir", f'{name}_Work_Dir')
-local_opensees_path = Utility.get_path(r"E:\PyPBEE\OpenSees_Windows\OpenSees")
-local_python_path = Utility.get_path(r"E:\PyPBEE\PyPBEE\venv\pypbee\Scripts\python.exe")
-gm_database_dir_path = Utility.get_path(base_dir_path, 'NGA_PEER_EQ_DB')
+local_opensees_path = Utility.get_path(r"E:\PyPBEE\vendor\OpenSees_Windows\OpenSees")
+local_python_path = Utility.get_path(r"E:\PyPBEE\venv\pypbee\Scripts\python.exe")
+gm_database_dir_path = Utility.get_path(base_dir_path, 'data', 'NGA_PEER_EQ_DB')
 local_bash_path = Utility.get_path(r'C:\Program Files\Git\git-bash')
 model_params = Utility.import_attr_from_module(model_files_path, f"osb_info_{name}", 'model_params')
 location_info = Utility.import_attr_from_module(model_files_path, f"osb_info_{name}", 'location_info')
 
-# structural_analysis_platform = OpenSeesTcl(model_files_path, local_opensees_path)
-structural_analysis_platform = OpenSeesPy(model_files_path, local_python_path)
+structural_analysis_platform = OpenSeesTcl(model_files_path, local_opensees_path)
+# structural_analysis_platform = OpenSeesPy(model_files_path, local_python_path)
 
 osb = OSB(name, location_info, model_files_path, model_work_dir_path, model_params, structural_analysis_platform)
 design_num_list = osb.get_design_num_list('all')
@@ -144,45 +144,45 @@ ds_list.append(
 )
 psdamha = PSDamHA(ds_list, im=im, sol_type='numerical')
 
-f, a, _ = im.plot_gm_psa_spectra(
-    ['100', '1', '1', '1', '3'],
-    figkwargs={'num': 1, 'figsize': (3.56, 2.68)},
-    minor_grid_alpha=0.5,
-    plot_uhs=True,
-)
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\gms.png", dpi=600)
-
-f, a, _ = im.plot_shc(
-    ['100', '1', '1', '1', '3'],
-    figkwargs={'num': 1, 'figsize': (3.56, 2.68)},
-    minor_grid_alpha=0.5,
-    plot_all=True,
-)
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\shc.png", dpi=600)
-
-f, a, _ = edp_list[0].plot_conditional_demand_model_3d(
-    for_which=['100', '1', '1', '1'],
-    edp_str="col_1_edge_2",
-    haz_lev_list=haz_lev_list,
-    im=im,
-    im_lim=[0, 1],
-    edp_lim=[0.0001, 0.05],
-    figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True},
-)
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\cdm.png", dpi=600, transparent=True)
-
-f, a, _ = ds_list[0].plot_haz_deagg(
-    for_which=['100', '1', '1', '1'],
-    wrt="im",
-)
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\haz_deagg.png", dpi=600)
-
-f, a, _ = osb.plot_scenario_rates(figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True})
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\rates.png", dpi=600, transparent=True)
-
-f, a, _ = ds_list[0].plot_mrp_histogram(
-    for_which=['200', '1', '1', '1'],
-    mrp_det=ds_list[0].get_damage_mrp_system_mean_estimate(['100', '1', '1', '1'])[0],
-    figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True},
-)
-f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\hist.png", dpi=600, transparent=True)
+# f, a, _ = im.plot_gm_psa_spectra(
+#     ['100', '1', '1', '1', '3'],
+#     figkwargs={'num': 1, 'figsize': (3.56, 2.68)},
+#     minor_grid_alpha=0.5,
+#     plot_uhs=True,
+# )
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\gms.png", dpi=600)
+#
+# f, a, _ = im.plot_shc(
+#     ['100', '1', '1', '1', '3'],
+#     figkwargs={'num': 1, 'figsize': (3.56, 2.68)},
+#     minor_grid_alpha=0.5,
+#     plot_all=True,
+# )
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\shc.png", dpi=600)
+#
+# f, a, _ = edp_list[0].plot_conditional_demand_model_3d(
+#     for_which=['100', '1', '1', '1'],
+#     edp_str="col_1_edge_2",
+#     haz_lev_list=haz_lev_list,
+#     im=im,
+#     im_lim=[0, 1],
+#     edp_lim=[0.0001, 0.05],
+#     figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True},
+# )
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\cdm.png", dpi=600, transparent=True)
+#
+# f, a, _ = ds_list[0].plot_haz_deagg(
+#     for_which=['100', '1', '1', '1'],
+#     wrt="im",
+# )
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\haz_deagg.png", dpi=600)
+#
+# f, a, _ = osb.plot_scenario_rates(figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True})
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\rates.png", dpi=600, transparent=True)
+#
+# f, a, _ = ds_list[0].plot_mrp_histogram(
+#     for_which=['200', '1', '1', '1'],
+#     mrp_det=ds_list[0].get_damage_mrp_system_mean_estimate(['100', '1', '1', '1'])[0],
+#     figkwargs={'num': 1, 'figsize': (4.5, 3), 'constrained_layout': True},
+# )
+# f.savefig(r"E:\Dropbox\Personal\Journal Papers\Paper 5\hist.png", dpi=600, transparent=True)

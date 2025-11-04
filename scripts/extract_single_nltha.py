@@ -16,7 +16,7 @@ from create_objects import im, gm_database_dir_path, nltha, prelim_analysis
 # for_which = ['100', '1', '1', '1', '6', '1']
 # for_which = ['400', '1', '1', '13', '6', '39']
 # for_which = ['400', '1', '1', '11', '6', '1']
-for_which_str = '100 1 1 1 6 20'
+for_which_str = '200 1 1 20 6 20'
 for_which = for_which_str.split()
 
 element_response_list = list()
