@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = { attr = "pypbee.__version__" }
+version = { attr = "pypbee._version.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["pypbee*"]

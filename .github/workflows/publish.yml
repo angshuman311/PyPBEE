@@ -28,7 +28,7 @@ jobs:
       - name: Verify tag matches package version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          VER=$(python -c "import importlib.util, pathlib; p=pathlib.Path('pypbee/__init__.py'); s=importlib.util.spec_from_file_location('pypbee', p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); print(m.__version__)")
+          VER=$(python -c "import runpy; print(runpy.run_path('pypbee/_version.py')['__version__'])")
           if [ "$TAG" != "$VER" ]; then
             echo "Tag v$TAG does not match package version $VER"
             exit 1

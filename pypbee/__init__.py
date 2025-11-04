@@ -25,7 +25,7 @@ from .sa_t import SaT
 from .structural_analysis_platform import StructuralAnalysisPlatform, OpenSeesTcl, OpenSeesPy
 from .structure import Structure, FrameStructure, OSB
 from .utility import Utility
-
+from ._version import __version__
 
 __all__ = [
     'Analysis',
@@ -51,4 +51,3 @@ __all__ = [
 
 __author__ = 'Angshuman Deb'
 __title__ = 'pypbee'
-__version__ = "1.0.0"
