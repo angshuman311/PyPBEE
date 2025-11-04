@@ -71,6 +71,8 @@ if exist "%ENV_FOLDER%" (
 echo Creating virtual environment...
 "%PYTHON_PATH%" -m venv "%ENV_FOLDER%"
 
+REM GOTO :SKIP_SETUP
+
 REM Activate the virtual environment
 echo Activating virtual environment...
 call "%ENV_FOLDER%\Scripts\activate"
@@ -89,3 +91,7 @@ pip install --no-cache-dir -r requirements.txt
 
 echo Setup complete.
 pause
+
+REM :SKIP_SETUP
+REM echo Script continued here.
+REM pause

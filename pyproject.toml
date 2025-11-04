@@ -13,7 +13,7 @@ authors         = [{name = "Angshuman Deb", email = "angshuman311@gmail.com"}]
 
 dependencies = [
     "numpy>=1.26",
-    "scipy>=1.15",
+    "scipy<=1.15.3",
     "matplotlib>=3.8.2",
     "pygmm>=0.7.1",
     "numba>=0.62",
