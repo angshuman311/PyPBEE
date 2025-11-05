@@ -20,7 +20,12 @@ import scipy.io as sio
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from numba import jit
+try:
+    from numba import jit
+except ImportError:
+    def jit(*args, **kwargs):
+        def _wrap(f): return f
+        return _wrap
 
 
 class Sa(IM):
