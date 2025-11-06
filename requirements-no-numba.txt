@@ -1,0 +1,12 @@
+numpy>=1.26
+scipy<=1.15.3
+matplotlib>=3.8.2
+pygmm>=0.7.1
+numba>=0.62
+pathos>=0.3.4
+pydoe3>=1.0.4
+xlrd>=2.0.1
+eqsig>=1.2.17
+openpyxl>=3.1.5
+python-benedict>=0.35.0
+openseespy

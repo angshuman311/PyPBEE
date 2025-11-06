@@ -19,58 +19,192 @@ A modular, high-performance framework that lets researchers and engineers run th
 * **Built-in visualisation**  
   Hazard curves, conditional spectra, demand / damage hazard surfaces, deaggregation plots — all ready for publication.  
 
-## Quick install (users)
 
-```bash
+## PyPBEE Installation Guide
+**Supported Python Versions:** 3.12 ≤ Python ≤ 3.13.5
+
+---
+
+### Recommended: Create a Fresh Environment
+It is **highly recommended** to install PyPBEE in a **new isolated environment**.
+
+You can set up PyPBEE using **five primary installation routes**. The first four require [forking and cloning the PyPBEE repository](#forking-and-cloning-the-repository):
+
+| Route | Platform | Tool | Description |
+|--------|-----------|------|--------------|
+| [1. Windows (venv)](#installing-on-windows-using-virtual-environment-venv-using-setup_venvbat) | Windows | Virtual environment (`venv`) | Uses `setup_venv.bat` to create and configure a venv automatically |
+| [2. Windows (Conda)](#installing-on-windows-conda) | Windows | Conda | Uses the provided `environment.yml` to set up a Conda environment |
+| [3. macOS (venv)](#installing-on-macos-using-virtual-environment-venv) | macOS | Virtual environment (`venv`) | Manual venv setup using `python3 -m venv` |
+| [4. macOS (Conda)](#installing-on-macos-conda) | macOS | Conda | Uses the provided `environment.yml` to create a Conda environment |
+| [5. PyPI](#installing-directly-from-pypi) | All | pip | Install directly from PyPI |
+
+
+
+
+---
+
+### Forking and Cloning the Repository
+
+1. Install **Git** from [git-scm.com](https://git-scm.com/install/)
+2. Go to [https://github.com/angshuman311/PyPBEE](https://github.com/angshuman311/PyPBEE) and click **Fork** (top-right corner)  
+   This creates your own copy of the repository under your GitHub account.
+3. Open **Git Bash** on Windows (or **Terminal** on macOS)
+4. Navigate (`cd`) to the folder where you want the code to reside:
+   ```
+   cd path/to/your/projects
+   ```
+5. Clone **your fork** instead of the main repo:
+   ```
+   git clone https://github.com/<your-github-username>/PyPBEE
+   ```
+
+---
+
+### Installing on Windows using virtual environment (venv): Using `setup_venv.bat`
+
+1. Install **Python >=3.12, =<3.13.5** from [python.org](https://www.python.org/downloads/)
+2. Locate `setup_venv.bat` in your repository directory
+3. Double-click `setup_venv.bat`
+4. When prompted, browse to your `python.exe` location (from step 1)
+5. The script will:
+   - Create `venv\pypbee` inside the repository directory
+   - Install all requirements from `requirements.txt`
+6. Point your **IDE's Python interpreter** (for example, in VS Code, PyCharm, or Spyder) to the **`python.exe`** inside the **virtual environment** you just created (`venv\pypbee`)
+
+---
+
+### Installing on Windows (Conda)
+
+1. Install the **Anaconda** distribution
+2. Open **Anaconda Prompt**
+3. Navigate to the cloned repository directory:
+   ```
+   cd path\to\your\PyPBEE
+   ```
+4. Create the environment from the provided file:
+   ```
+   conda env create -f environment.yml
+   ```
+5. Point your **IDE's Python interpreter** (e.g., in VS Code, PyCharm, or Spyder) to the **conda environment** you just created (`pypbee`)
+
+---
+
+### Installing on macOS using virtual environment (venv)
+
+1. Install **Python ≥3.12, ≤3.13.5** from [python.org](https://www.python.org/downloads/)
+2. Open **Terminal**
+3. Navigate to your cloned repository directory:
+   ```
+   cd path/to/your/PyPBEE
+   ```
+4. Create a new virtual environment inside the repository directory:
+   ```
+   python3 -m venv venv/pypbee
+   ```
+5. Activate the environment:
+   ```
+   source venv/pypbee/bin/activate
+   ```
+6. Upgrade pip and install all required dependencies:
+   ```
+   python -m pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+   **Note:** If you encounter issues when installing `numba` on macOS, use the alternate file:
+   ```
+   pip install -r requirements-no-numba.txt
+   ```
+7. Point your **IDE's Python interpreter** (for example, in VS Code, PyCharm, or Spyder) to the **`python`** binary inside the virtual environment you just created (`venv/pypbee/bin/python`)
+
+---
+
+### Installing on macOS (Conda)
+
+1. Install the **Anaconda** distribution
+2. Open **Terminal**
+3. Navigate to the cloned repository directory:
+   ```
+   cd path/to/your/PyPBEE
+   ```
+4. Create the environment from the provided file:
+   ```
+   conda env create -f environment.yml
+   ```
+   **Note:** If installation errors related to `numba` occur, use the alternate environment file:
+   ```
+   conda env create -f environment-no-numba.yml
+   ```
+5. Activate the environment:
+   ```
+   conda activate pypbee
+   ```
+6. Point your **IDE's Python interpreter** (e.g., in VS Code, PyCharm, or Spyder) to the **conda environment** you just created (`pypbee`)
+
+---
+
+### Installing Directly from PyPI
+
+PyPBEE is also available on **[PyPI](https://pypi.org/project/pypbee/)**.
+
+> ⚠️ **Important:**  
+> We **strongly recommend** installing PyPBEE inside a **new, isolated virtual environment** (using `venv`) or a **Conda environment**.  
+> **Do not** install PyPBEE in your base Python or base Conda environment — this helps avoid version conflicts and dependency issues with other packages.
+
+
+**Step 1: Install Python (or Anaconda)**
+
+Before proceeding, ensure you have **Python 3.12 ≤ version ≤ 3.13.5** installed.  
+You can choose one of the two following options:
+
+- Install **Python** directly from [python.org/downloads](https://www.python.org/downloads/).  
+  During installation on Windows, make sure to **check “Add Python to PATH.”**.  
+  To create a new environment:
+  1. Open a **terminal** (macOS/Linux) or **Command Prompt** (Windows).
+  2. Navigate (`cd`) to the folder where you want to create the virtual environment — typically inside your project directory.  
+   Example:
+   ```
+   cd path/to/your/project
+   ```
+  3. Create and activate the virtual environment:
+   ```
+   python -m venv pypbee-venv
+   source pypbee-venv/bin/activate    # macOS/Linux
+   pypbee-venv\Scripts\activate       # Windows
+   ```
+
+- Or install the **Anaconda distribution** (which includes Python and Conda).  
+  When creating the environment later, Conda will automatically install the correct Python version.  
+  To create a new environment, do this inside an **Anaconda Prompt** (Windows) or a **terminal** (macOS/Linux):
+  ```
+  conda create -n pypbee python=3.13.5
+  conda activate pypbee
+  ```
+
+
+**Step 2: Install PyPBEE from PyPI**
+
+Without Numba:
+```
 pip install pypbee
 ```
 
-`pip` will fetch the latest wheel from PyPI along with NumPy, SciPy, Matplotlib, etc.
+With Numba acceleration enabled:
+```
+pip install "pypbee[numba]"
+```
 
 ---
 
-## Developer setup (work with the source)
+## Verifying Installation
 
-```bash
-git clone https://github.com/angshuman311/PyPBEE.git
-cd PyPBEE
+Run Python and import PyPBEE:
+```python
+import pypbee
+print(pypbee.__version__)
 ```
 
-### Windows
+If no errors appear, your environment is correctly set up.
 
-Simply **double-click** `setup_venv.bat` (or run it in CMD/PowerShell).  
-The script:
-
-1. creates a virtual environment `venv\pypbee`;
-2. installs everything listed in `requirements.txt`;
-
-Point your IDE’s interpreter to:
-
-```
-/path/to/PyPBEE/venv/pypbee/Scripts/python.exe
-```
-
-### Linux / macOS
-
-Do the same steps manually:
-
-```bash
-python3 -m venv venv/pypbee    
-source venv/pypbee/bin/activate
-
-# install requirements
-pip install -r requirements.txt
-```
-
-Point your IDE’s interpreter to:
-
-```
-/path/to/PyPBEE/venv/pypbee/Scripts/python.exe
-```
-
-Once the env is active you can edit code under `pypbee/`, run examples in `scripts/`, and submit pull requests.
-
----
 
 ## Conceptual PSEUDO code
 ```python

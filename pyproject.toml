@@ -7,7 +7,7 @@ name            = "pypbee"
 dynamic         = ["version"]
 description     = "Performance-Based Earthquake Engineering toolkit"
 readme          = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<=3.13.5"
 license         = "MIT"
 authors         = [{name = "Angshuman Deb", email = "angshuman311@gmail.com"}]
 
