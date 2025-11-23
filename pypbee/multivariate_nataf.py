@@ -9,7 +9,7 @@ import numpy as np
 from scipy.stats import norm
 from scipy.stats import multivariate_normal
 from scipy.optimize import root_scalar
-from pyDOE2 import lhs
+from pyDOE3 import lhs
 import sys
 
 

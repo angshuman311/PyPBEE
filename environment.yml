@@ -12,6 +12,7 @@ dependencies:
   - xlrd>=2.0.1
   - openpyxl>=3.1.5
   - numba>=0.61
+  - pyqt>=5.15,<5.16
   - pip:
       - pygmm>=0.7.1
       - pydoe3>=1.0.4

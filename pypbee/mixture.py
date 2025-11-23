@@ -6,7 +6,7 @@ Created on Sat Dec  7 18:32:34 2019
 """
 
 import numpy as np
-from pyDOE2 import lhs
+from pyDOE3 import lhs
 import sys
 from scipy import integrate
 from scipy import interpolate

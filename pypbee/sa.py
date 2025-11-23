@@ -279,10 +279,15 @@ class Sa(IM):
             # 2 options:
             # 1. mixture CMS
             # 2. non-mixture CMS
-            ind = np.where(np.all(cov_req[:, :, 0] == 0, axis=1))[0][0]
-            cov_req = np.delete(np.delete(cov_req, ind, axis=0), ind, axis=1)
-            mean_req = np.delete(mean_req, ind, axis=1)
-            spectral_periods = np.delete(spectral_periods, ind)
+            zero_rows = np.where(np.all(cov_req[:, :, 0] == 0, axis=1))[0]
+            if zero_rows.size == 0:
+                pass
+            else:
+                ind = zero_rows[0]
+                cov_req = np.delete(np.delete(cov_req, ind, axis=0), ind, axis=1)
+                mean_req = np.delete(mean_req, ind, axis=1)
+                spectral_periods = np.delete(spectral_periods, ind)
+
             n_sp = len(spectral_periods)
             # Simulate realizations of ground motion spectra
             n_trials = 20

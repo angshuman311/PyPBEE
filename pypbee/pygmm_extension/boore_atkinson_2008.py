@@ -25,7 +25,14 @@ class BooreAtkinson2008(model.GroundMotionModel):
 
     # Load the coefficients for the model
     fname = os.path.join(os.path.dirname(__file__), 'data', 'boore_atkinson_2008.csv')
-    COEFF = np.recfromcsv(fname, skip_header=2, case_sensitive=True).view(np.recarray)
+    COEFF = np.genfromtxt(
+        fname,
+        delimiter=",",
+        names=True,
+        dtype=None,
+        encoding="utf8",
+        skip_header=2  # skip "# Boore..." and "# Coefficients"
+    ).view(np.recarray)
     PERIODS = COEFF['period']
     
     INDEX_PGV = 0
