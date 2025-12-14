@@ -26,21 +26,13 @@ if __name__ == "__main__":
     gms.run(analysis_case, pool_size, rng_seed=rng_seed, n_loop=2)
     gms.wrap_up(analysis_case)
 
-    nltha.stampede_upload_pre(
-        analysis_case, design_num_list, haz_lev_list, 'adeb', 'BCS25086', 8, 50,
-        f'/scratch/04236/adeb/stampede3/PEER_UQ_Project/Software/{nltha.structure.name}',
-        local_bash_path=local_bash_path,
-        nltha_include=False, extract=True, stampede_comp_env='stampede_knl',
-        new_file=True, keep_file=False,
-    )
-
     nltha.setup(analysis_case, pool_size, design_num_list, haz_lev_list, gm_database_dir_path)
     nltha.run(analysis_case, pool_size)
     nltha.wrap_up(analysis_case)
-    # # 2 analysis didn't converge, changed algorithm and tolerances
+    # 2 analysis didn't converge, changed algorithm and tolerances
     # nltha.run(analysis_case, pool_size)
     # nltha.wrap_up(analysis_case)
-    # # After all analyses converges:
+    # After all analyses converges:
     nltha.collect_edps(analysis_case, pool_size)
 
     psdemha.setup(analysis_case, design_num_list, haz_lev_list)

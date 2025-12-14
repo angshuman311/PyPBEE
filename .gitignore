@@ -25,3 +25,6 @@ OpenSees_Windows/
 # ─── databases, vendors ──────────────────────
 data/NGA_PEER_EQ_DB/
 vendor/**/*.exe
+
+# ─── docx ──────────────────────
+*.docx
