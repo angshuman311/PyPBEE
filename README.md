@@ -21,7 +21,7 @@ A modular, high-performance framework that lets researchers and engineers run th
 
 
 ## PyPBEE Installation Guide
-**Supported Python Versions:** 3.12 ≤ Python ≤ 3.13.5
+**Supported Python Versions:** 3.12
 
 ---
 
@@ -62,7 +62,7 @@ You can set up PyPBEE using **five primary installation routes**. The first four
 
 ### Installing on Windows using virtual environment (venv): Using `setup_venv.bat`
 
-1. Install **Python >=3.12, =<3.13.5** from [python.org](https://www.python.org/downloads/)
+1. Install **Python >=3.12, <3.13** from [python.org](https://www.python.org/downloads/)
 2. Locate `setup_venv.bat` in your repository directory
 3. Double-click `setup_venv.bat`
 4. When prompted, browse to your `python.exe` location (from step 1)
@@ -91,7 +91,7 @@ You can set up PyPBEE using **five primary installation routes**. The first four
 
 ### Installing on macOS using virtual environment (venv)
 
-1. Install **Python ≥3.12, ≤3.13.5** from [python.org](https://www.python.org/downloads/)
+1. Install **Python ≥3.12, <3.13** from [python.org](https://www.python.org/downloads/)
 2. Open **Terminal**
 3. Navigate to your cloned repository directory:
    ```
@@ -153,10 +153,10 @@ PyPBEE is also available on **[PyPI](https://pypi.org/project/pypbee/)**.
 
 **Step 1: Install Python (or Anaconda)**
 
-Before proceeding, ensure you have **Python 3.12 ≤ version ≤ 3.13.5** installed.  
+Before proceeding, ensure you have **Python 3.12 ≤ version < 3.13** installed.  
 You can choose one of the two following options:
 
-- Install **Python** directly from [python.org/downloads](https://www.python.org/downloads/).  
+- Install **Python 3.12 ≤ version < 3.13** directly from [python.org/downloads](https://www.python.org/downloads/).  
   During installation on Windows, make sure to **check “Add Python to PATH.”**.  
   To create a new environment:
   1. Open a **terminal** (macOS/Linux) or **Command Prompt** (Windows).
@@ -173,10 +173,10 @@ You can choose one of the two following options:
    ```
 
 - Or install the **Anaconda distribution** (which includes Python and Conda).  
-  When creating the environment later, Conda will automatically install the correct Python version.  
+  When creating the environment later, Conda will automatically install the correct Python version **(>=3.12, <3.13)**.  
   To create a new environment, do this inside an **Anaconda Prompt** (Windows) or a **terminal** (macOS/Linux):
   ```
-  conda create -n pypbee python=3.13.5
+  conda create -n pypbee python=3.12.10
   conda activate pypbee
   ```
 
@@ -271,7 +271,7 @@ for a in (pre, psha, gms, nltha, psdemha, psdamha):
     a.run(...)
     a.wrap_up(...)
 ```
-Full, commented examples live in `examples/` and `scripts/`.
+Full, commented examples live in `scripts/examples`.
 
 ## Contributing
 1. Fork this repository and clone your fork locally.   

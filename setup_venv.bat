@@ -17,7 +17,7 @@ if not exist "%PYTHON_PATH%" (
     exit /b 1
 )
 
-REM Verify Python version is >= 3.12
+REM Verify Python version is >= 3.12 and < 3.13
 set "PY_VER="
 "%PYTHON_PATH%" -c "import sys;print('.'.join(map(str, sys.version_info[:3])))" > "%TEMP%\_pyver.txt" 2>NUL
 set /p PY_VER=<"%TEMP%\_pyver.txt"
@@ -35,19 +35,30 @@ for /f "tokens=1,2 delims=." %%a in ("%PY_VER%") do (
 )
 
 if %MAJOR% LSS 3 (
-    echo Python version %PY_VER% is too old. Need 3.12 or higher.
+    echo Python version %PY_VER% is not supported. Need >= 3.12 and < 3.13.
     pause
     exit /b 1
 )
 
-if %MAJOR% EQU 3 if %MINOR% LSS 12 (
-    echo Python version %PY_VER% is too old. Need 3.12 or higher.
+if %MAJOR% GTR 3 (
+    echo Python version %PY_VER% is not supported. Need >= 3.12 and < 3.13.
+    pause
+    exit /b 1
+)
+
+if %MINOR% LSS 12 (
+    echo Python version %PY_VER% is not supported. Need >= 3.12 and < 3.13.
+    pause
+    exit /b 1
+)
+
+if %MINOR% GEQ 13 (
+    echo Python version %PY_VER% is not supported. Need >= 3.12 and < 3.13.
     pause
     exit /b 1
 )
 
 echo Detected Python %PY_VER% OK.
-
 
 
 set ENV_NAME=pypbee

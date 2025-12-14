@@ -14,6 +14,8 @@ from time import time
 from functools import partial
 from pathos.multiprocessing import ProcessPool as Pool
 from benedict import benedict
+import shutil
+import re
 
 
 class GMS(Analysis):
@@ -273,3 +275,49 @@ class GMS(Analysis):
         return
 
     # ------------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def add_downloaded_gm_records_to_gm_database(
+            at2_source_dir: str,
+            gm_database_dir_path: str,
+    ):
+        """
+        Copies downloaded .at2 ground motion files into a GM database structure.
+
+        Expected filename pattern
+            RSN<number>_<EVENT...>_<STATION>.at2
+            RSN<number>_<EVENT...>_<STATION>.AT2
+
+        Resulting structure
+            gm_database_dir_path/
+                <EVENT...>/
+                    <STATION>.AT2
+        """
+
+        if not os.path.isdir(at2_source_dir):
+            raise ValueError(f"Source directory does not exist: {at2_source_dir}")
+
+        if not os.path.isdir(gm_database_dir_path):
+            raise ValueError(f"GM database directory does not exist: {gm_database_dir_path}")
+
+        pattern = re.compile(
+            r"^RSN\d+_(.+)_([^_\.]+)\.(at2|AT2)$"
+        )
+
+        for filename in os.listdir(at2_source_dir):
+            match = pattern.match(filename)
+            if not match:
+                continue
+
+            event_name = match.group(1)
+            station_name = match.group(2)
+
+            source_file_path = os.path.join(at2_source_dir, filename)
+
+            target_dir = os.path.join(gm_database_dir_path, event_name)
+            os.makedirs(target_dir, exist_ok=True)
+
+            target_filename = f"{station_name}.AT2"
+            target_file_path = os.path.join(target_dir, target_filename)
+
+            shutil.copy2(source_file_path, target_file_path)

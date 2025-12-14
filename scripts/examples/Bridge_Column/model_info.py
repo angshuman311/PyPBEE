@@ -117,11 +117,12 @@ for i_col in list(range(1, num_cols_total + 1)):
     for i_sec in list(range(1, num_secdef_per_col + 1)):
         name_list.append(f'fpc_col_{i_col}_secdef_{i_sec}')
         name_list.append(f'Ec_col_{i_col}_secdef_{i_sec}')
-rv_list_entry = {'prob_dist_ind_list': [0, 1],
-                 'count': num_cols_total * num_secdef_per_col,
-                 'name_list': name_list,
-                 'expected_value_list': expected_value_list
-                 }
+rv_list_entry = {
+    'prob_dist_ind_list': [0, 1],
+    'count': num_cols_total * num_secdef_per_col,
+    'name_list': name_list,
+    'expected_value_list': expected_value_list
+}
 rv_list.append(rv_list_entry)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -173,11 +174,13 @@ random_model_params['dist_params_sample_size'] = dist_params_sample_size
 ########################################################################################################################
 # Primary design parameters
 ########################################################################################################################
-
+primary_design_vars = {'1': [5.51, 0.02]}
 design_num = 2
 for i_col_dia in range(len(col_dia)):
     for i_rho_long in range(len(rho_long)):
-        primary_design_vars.update({f'{design_num}': [col_dia[i_col_dia], rho_long[i_rho_long]]})
+        primary_design_vars.update(
+            {f'{design_num}': [col_dia[i_col_dia], rho_long[i_rho_long]]}
+        )
         design_num += 1
 
 n_dp = len(primary_design_vars.keys())
@@ -185,8 +188,12 @@ primary_design_params = dict()
 primary_design_params['value_list_dict'] = primary_design_vars
 primary_design_params['name_list'] = ['all_col_dia_in_ft', 'all_rho_long']
 # to define grid point vs non-grid-point
-primary_design_params['design_point_qualifier_dict'] = dict(zip(list(primary_design_vars.keys()),
-                                                                ['as-designed non-gp'] + ['gp'] * (n_dp - 1)))
+primary_design_params['design_point_qualifier_dict'] = dict(
+    zip(
+        list(primary_design_vars.keys()),
+        ['as-designed non-gp'] + ['gp'] * (n_dp - 1)
+    )
+)
 
 ########################################################################################################################
 # Other model parameters
@@ -203,30 +210,14 @@ other_model_params['name_list'] = ['num_bar_clusters', 'num_secdef_per_col']
 damping_models = list()
 
 damping_model = dict()
-damping_model['name'] = 'rayleigh_damping_first_trans_mode'
-damping_model['xi_i'] = ['damp_ratio']
-damping_models.append(damping_model)
-
-damping_model = dict()
-damping_model['name'] = 'rayleigh_damping'
-damping_model['xi_i'] = ['damp_ratio'] * 2
-damping_model['i'] = [1, 2]
-damping_model['w_i'] = [None, None]
-damping_models.append(damping_model)
-
-damping_model = dict()
 damping_model['name'] = 'modal_damping'
-damping_model['xi_i'] = ['damp_ratio'] * 4 + list(np.linspace(0.01, 0.10, 10))
+damping_model['xi_i'] = ['damp_ratio'] * 2
 damping_models.append(damping_model)
 
 model_attributes = dict()
-model_attributes['vertical_gm'] = [0, 1]
-model_attributes['ssi_springs'] = [0]
-model_attributes['base_hinge'] = [0]
-model_attributes['steel_material'] = ['SteelMPF']
-model_attributes['col_elem_type'] = ['1', '2', '3', '4', '5']
-model_attributes['damping'] = ['rayleigh_damping_first_trans_mode', 'rayleigh_damping', 'modal_damping']
-model_attributes['backfill_resp_skew'] = [1, 0]
+model_attributes['steel_material'] = ['SteelMPF', 'Steel01']
+model_attributes['col_elem_type'] = ['1', '2']
+model_attributes['damping'] = ['modal_damping']
 
 ########################################################################################################################
 # model_params

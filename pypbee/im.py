@@ -112,6 +112,12 @@ class IM(ABC):
 
     # ------------------------------------------------------------------------------------------------------------------
 
+    def get_nga_rsns(self, for_which):
+        gms_results = self.get_gms_results(for_which)
+        return [int(item) for item in gms_results[0]['NGA_RSN']]
+
+    # ------------------------------------------------------------------------------------------------------------------
+
     def get_gm_rec_info(self, for_which):
         dir_level_to_seek = 'Ground_Motion_Rec_Num'
         for_which = Structure.get_modified_for_which(for_which, dir_level_to_seek)
@@ -176,8 +182,11 @@ class IM(ABC):
 
         structure = self.structure
         site_hazard_info = structure.get_site_hazard_info()
-        mag = site_hazard_info['scenario_data']['mag']
-        dist = site_hazard_info['scenario_data']['dist']
+        gmm_param_names = self.get_gmm_param_names()
+        mag_param_name = [item for item in gmm_param_names if item.startswith('mag')][0]
+        dist_param_name = [item for item in gmm_param_names if item.startswith('dist')][0]
+        mag = site_hazard_info['scenario_data'][mag_param_name]
+        dist = site_hazard_info['scenario_data'][dist_param_name]
         rate = self.get_seismic_hazard_deagg(mrp, for_which)
 
         fig, ax, export_mat_dict = Utility.plot_3d_bar(mag, dist, rate,
