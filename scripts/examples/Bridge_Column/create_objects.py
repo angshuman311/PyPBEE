@@ -34,7 +34,7 @@ rng_seed = 'unique 6'  # for other Bridges
 
 base_dir_path = r"C:\Users\adeb\Work\PyPBEE"
 base_work_dir_path = r"C:\Users\adeb\Work\PyPBEE_Work_Dir"
-model_files_path = os.path.join(base_dir_path, 'scripts', 'examples', name)
+model_files_path = os.path.join(base_dir_path, 'scripts', 'examples', name, 'Model_Files')
 model_work_dir_path = os.path.join(base_work_dir_path, f"{name}_Work_Dir")
 local_opensees_path = os.path.join(base_dir_path, "vendor", "OpenSees_Windows", "OpenSees")
 local_python_path = os.path.join(base_dir_path, "venv", "pypbee", "Scripts", "python.exe")

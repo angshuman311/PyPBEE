@@ -17,6 +17,7 @@ from collections.abc import Sequence
 import matplotlib.tri as tri
 import shutil
 from copy import deepcopy
+from matplotlib.patches import Circle, Polygon, Wedge
 
 
 class Structure:
@@ -1166,9 +1167,243 @@ class FrameStructure(Structure):
                 mat_tags.append(int(item[-1]))
         return mat_tags
 
+    @staticmethod
+    def plot_fiber_section_from_commands(fib_sec_commands, matcolor):
+        fig, ax = plt.subplots()
+        ax.set_xlabel('y')
+        ax.set_ylabel('z')
+        ax.grid(False)
+        for item in fib_sec_commands:
+            if item[0] == 'layer':
+                mat_tag = item[2]
+                color = matcolor[mat_tag]
+                if item[1] == 'straight':
+                    fiber_centroids, fiber_area = FrameStructure.get_straight_layer_fiber_info(item)
+                    r = np.sqrt(fiber_area / np.pi)
+                    for yz in fiber_centroids:
+                        bar = Circle((yz[0], yz[1]), r, ec=color, fc=color, zorder=10)
+                        ax.add_patch(bar)
+                if item[1] == 'circ':
+                    fiber_centroids, fiber_area = FrameStructure.get_circ_layer_fiber_info(item)
+                    r_bar = np.sqrt(fiber_area / np.pi)
+                    for yz in fiber_centroids:
+                        bar = Circle((yz[0], yz[1]), r_bar, ec=color, fc=color, zorder=10)
+                        ax.add_patch(bar)
+
+            if item[0] == 'fiber':
+                mat_tag = item[-1]
+                color = matcolor[matcolor[mat_tag]]
+                fib_area = item[-2]
+                r_fib = np.sqrt(fib_area / np.pi)
+                y_fib, z_fib = item[1], item[2]
+                bar = Circle((y_fib, z_fib), r_fib, ec=color, fc=color, zorder=10)
+                ax.add_patch(bar)
+
+            if item[0] == 'patch' and (item[1] == 'quad' or item[1] == 'quadr' or item[1] == 'rect'):
+                mat_tag = item[2]
+                color = matcolor[mat_tag]
+                _, _, fiber_patches, _ = FrameStructure.get_quad_patch_fiber_info(item)
+                for yz in fiber_patches:
+                    poly = Polygon(yz, closed=True, ec='k', fc=color)
+                    ax.add_patch(poly)
+
+            if item[0] == 'patch' and item[1] == 'circ':
+                mat_tag = item[2]
+                color = matcolor[mat_tag]
+                _, _, fiber_wedges = FrameStructure.get_circ_patch_fiber_info(item)
+
+                for fiber_wedge in fiber_wedges:
+                    y_c, z_c, r, theta1, theta2, dr = fiber_wedge
+                    wedge = Wedge(center=(y_c, z_c), r=r, theta1=theta1, theta2=theta2, width=dr, ec='k',
+                                  lw=1, fc=color)
+                    ax.add_patch(wedge)
+        ax.autoscale_view()
+        ax.axis('equal')
+        return fig, ax
+
+    @staticmethod
+    def get_straight_layer_fiber_info(item):
+        n_bars = item[3]
+        iy, iz, jy, jz = item[5], item[6], item[7], item[8]
+        y = np.linspace(iy, jy, n_bars)
+        z = np.linspace(iz, jz, n_bars)
+        fiber_centroids = []
+        fiber_area = item[4]
+        for yi, zi in zip(y, z):
+            fiber_centroids.append((yi, zi))
+        return fiber_centroids, fiber_area
+
+    @staticmethod
+    def get_circ_layer_fiber_info(item):
+        n_bars, fiber_area = item[3], item[4]
+        y_c, z_c, arc_radius = item[5], item[6], item[7]
+        if len(item) > 8:
+            a0_deg, a1_deg = item[8], item[9]
+            if (a1_deg - a0_deg) >= 360. and n_bars > 0:
+                a1_deg = a0_deg + 360. - 360. / n_bars
+        else:
+            a0_deg, a1_deg = 0., 360. - 360. / n_bars
+
+        a0_rad, a1_rad = np.pi * a0_deg / 180., np.pi * a1_deg / 180.
+
+        thetas = np.linspace(a0_rad, a1_rad, n_bars)
+        y = y_c + arc_radius * np.cos(thetas)
+        z = z_c + arc_radius * np.sin(thetas)
+        fiber_centroids = []
+        for yi, zi in zip(y, z):
+            fiber_centroids.append((yi, zi))
+        return fiber_centroids, fiber_area
+
+    @staticmethod
+    def get_quad_patch_fiber_info(item):
+        fiber_patches = []
+        fiber_centroids = []
+        fiber_areas = []
+        outer_boundary = []
+
+        n_ij, n_jk = item[3], item[4]
+
+        if item[1] == 'quad' or item[1] == 'quadr':
+            iy, iz, jy, jz = item[5], item[6], item[7], item[8]
+            ky, kz, ly, lz = item[9], item[10], item[11], item[12]
+        elif item[1] == 'rect':
+            iy, iz, ky, kz = item[5], item[6], item[7], item[8]
+            jy, jz, ly, lz = ky, iz, iy, kz
+        else:
+            return fiber_centroids, fiber_areas, fiber_patches, outer_boundary
+
+        outer_boundary = [
+            (iy, iz),
+            (jy, jz),
+            (ky, kz),
+            (ly, lz),
+        ]
+
+        ij_z, ij_y = np.linspace(iz, jz, n_ij + 1), np.linspace(iy, jy, n_ij + 1)
+        lk_z, lk_y = np.linspace(lz, kz, n_ij + 1), np.linspace(ly, ky, n_ij + 1)
+
+        z = np.zeros((n_ij + 1, n_jk + 1))
+        y = np.zeros((n_ij + 1, n_jk + 1))
+
+        for j in range(n_ij + 1):
+            z[j, :] = np.linspace(ij_z[j], lk_z[j], n_jk + 1)
+            y[j, :] = np.linspace(ij_y[j], lk_y[j], n_jk + 1)
+
+        for j in range(n_ij):
+            for k in range(n_jk):
+                yz = np.array([[y[j, k], z[j, k]],
+                               [y[j, k + 1], z[j, k + 1]],
+                               [y[j + 1, k + 1], z[j + 1, k + 1]],
+                               [y[j + 1, k], z[j + 1, k]]])
+                fiber_patches.append(yz)
+                centroid, area = FrameStructure.quad_props(yz)
+                fiber_centroids.append(centroid)
+                fiber_areas.append(area)
+        return fiber_centroids, fiber_areas, fiber_patches, outer_boundary
+
+    @staticmethod
+    def get_circ_patch_fiber_info(item):
+        nc, nr = item[3], item[4]
+        y_c, z_c, ri, re = item[5], item[6], item[7], item[8]
+
+        if len(item) > 9:
+            a0, a1 = item[9], item[10]
+        else:
+            a0, a1 = 0., 360.
+
+        dr = (re - ri) / nr
+        dth = (a1 - a0) / nc
+
+        fiber_wedges = []
+        fiber_centroids = []
+        fiber_areas = []
+
+        for j in range(nr):
+            rj = ri + j * dr
+            rj1 = rj + dr
+
+            for i in range(nc):
+                thi = a0 + i * dth
+                thi1 = thi + dth
+                wedge = [y_c, z_c, rj1, thi, thi1, dr]
+                fiber_wedges.append(wedge)
+                centroid, area = FrameStructure.wedge_props(*wedge)
+                fiber_centroids.append(centroid)
+                fiber_areas.append(area)
+        return fiber_centroids, fiber_areas, fiber_wedges
+
+    @staticmethod
+    def quad_props(vertices):
+        centroid = tuple(np.mean(vertices, axis=0))
+        x = vertices[:, 0]
+        y = vertices[:, 1]
+        area = 0.5 * ((x[0] * y[1] +
+                       x[1] * y[2] +
+                       x[2] * y[3] +
+                       x[3] * y[0]) - (x[1] * y[0] +
+                                       x[2] * y[1] +
+                                       x[3] * y[2] +
+                                       x[0] * y[3]))
+        return centroid, np.abs(area)
+
+    @staticmethod
+    def wedge_props(x: float, y: float, r: float, theta1: float, theta2: float, width: float):
+        # Calculate inner and outer radii
+        r_inner = r - width
+        r_outer = r
+
+        # Calculate area of partial wedge
+        theta1_rad = np.radians(theta1)
+        theta2_rad = np.radians(theta2)
+        alpha = theta2_rad - theta1_rad
+        area_outer_sector = 0.5 * r_outer ** 2 * alpha
+        area_inner_sector = 0.5 * r_inner ** 2 * alpha
+        area_wedge = area_outer_sector - area_inner_sector
+
+        # Calculate centroids of outer and inner circular sectors
+        centroid_r_outer = 2 * r_outer / 3 * np.sin(alpha) / alpha
+        centroid_r_inner = 2 * r_inner / 3 * np.sin(alpha) / alpha
+        centroid_r = (area_outer_sector * centroid_r_outer - area_inner_sector * centroid_r_inner) / area_wedge
+        centroid_theta = (theta1_rad + theta2_rad) / 2
+
+        # Calculate the weighted average of the centroids
+        centroid_x = x + centroid_r * np.cos(centroid_theta)
+        centroid_y = y + centroid_r * np.sin(centroid_theta)
+        return (centroid_x, centroid_y), area_wedge
+
     ####################################################################################################################
     # Public functionalities (instance methods)
     ####################################################################################################################
+
+    def plot_fiber_section(self, for_which, sec_tag, matcolor):
+        dir_category = 'Prelim_Analysis_Results'
+        for_which = Structure.get_modified_for_which(for_which, 'Model_Realization_Num')
+        prelim_analysis_work_dir_path = Utility.get_path(self.model_work_dir_path, 'Work_Dir', dir_category, *for_which)
+
+        sec_def_file = Utility.get_path(prelim_analysis_work_dir_path, 'Model_Info_Files', f"fib_secdef_sec_{sec_tag}.txt")
+        fib_sec_commands = self.read_secdef_file(sec_def_file, delim=' ')
+
+        def convert_tokens_to_numeric(cmds):
+            """
+            Convert items in a list of lists to int or float when possible.
+            Items that cannot be converted are left as strings.
+            """
+
+            def _convert(x):
+                try:
+                    i = int(x)
+                    if str(i) == x:
+                        return i
+                except Exception:
+                    pass
+                try:
+                    return float(x)
+                except Exception:
+                    return x
+
+            return [[_convert(item) for item in row] for row in cmds]
+
+        self.plot_fiber_section_from_commands(fib_sec_commands=convert_tokens_to_numeric(fib_sec_commands), matcolor=matcolor)
 
     def generate_rebar_stress_strain_recorder(self, col_id, edge_id, col_edge_sec_info, rec_save_dir_path, rec_gen_file_fid):
         section_file_lines = col_edge_sec_info['secdef']
