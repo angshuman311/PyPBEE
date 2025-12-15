@@ -205,6 +205,28 @@ print(pypbee.__version__)
 
 If no errors appear, your environment is correctly set up.
 
+## User Manual
+
+The **PyPBEE User Manual (v2.0.0)** is now available and provides detailed, end-to-end documentation of the framework, including model definition, uncertainty handling, analysis workflows, and result interpretation.
+
+The manual is located in the repository in the `docs` folder. You can also access it directly [here](docs/PyPBEE%20User%20Manual.pdf)
+
+
+## Ground Motion Database Setup
+
+The ground motions currently supported by PyPBEE have been prepackaged and are available as a zipped archive. 
+It can be downloaded either from the [GitHub Releases page](https://github.com/angshuman311/PyPBEE/releases/tag/v1.1.0) or using
+[Dropbox](https://www.dropbox.com/scl/fi/utdpchf06qtdu0swceu94/NGA_PEER_EQ_DB.zip?rlkey=t3p0434mvbcz13djlmlpsw9s1&st=96mig508&dl=0)
+
+Please download and extract this archive using **7-Zip** (recommended for faster extraction), place the extracted directory in a **non-repository location**, and provide the path to that directory as `gm_database_dir_path` in `nltha.setup(...)`.
+
+In its current state, PyPBEE operates with approximately **3,500 NGA-West2 records**. Support for automatically generating RSNs for selected records, downloading the corresponding ground motions, and programmatically adding them to the local database is under active development. This functionality will be documented and released in a future update.
+
+- Original PEER Report: Ancheta, T. D., R. B. Darragh, J. P. Stewart, E. Seyhan, W. J. Silva, B. S.-J. Chiou, K. E. Wooddell, R. W. Graves, A. R. Kottke, D. M. Boore, T. Kishida, and J. L. Donahue. 2014. “NGA-West2 Database.” Earthquake Spectra, 30 (3): 989–1005. https://doi.org/10.1193/070913EQS197M.
+
+
+- Database maintained by PEER: https://ngawest2.berkeley.edu/
+
 
 ## Conceptual PSEUDO code
 ```python
