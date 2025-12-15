@@ -30,7 +30,7 @@ if __name__ == "__main__":
     nltha.setup(analysis_case, pool_size, design_num_list, haz_lev_list, gm_database_dir_path)
     nltha.run(analysis_case, pool_size)
     nltha.wrap_up(analysis_case)
-    # 2 analysis didn't converge, changed algorithm and tolerances
+    # if analyses didn't converge, change algorithm and tolerances
     # nltha.run(analysis_case, pool_size)
     # nltha.wrap_up(analysis_case)
     # After all analyses converges:
@@ -111,6 +111,10 @@ if __name__ == "__main__":
     ax6.set_ylabel('MAF [-]')
 
     ds2 = psdamha.ds_list[1]
+    ds2.plot_denormalized_fragility(
+        for_which=['100', '1', '1', '1'],
+        ds_str='col_1_edge_1',
+    )
     mrp_ds2 = 1 / ds2.get_psdamha_results(
         for_which=['100', '1', '1', '1'],
         ds_str='col_1_edge_1'
@@ -132,3 +136,22 @@ if __name__ == "__main__":
         num_modes=prelim_analysis.num_modes,
         gm_database_dir_path=gm_database_dir_path
     )
+
+    structure = im.structure
+    prob_dist_list = structure.model_params['random_model_params']['prob_dist_list'][4:6]
+    corr_matrix = structure.model_params['random_model_params']['corr_matrix'][4:6, 4:6]
+    from pypbee.utility import Utility
+    fig8, axs8, _ = Utility.plot_2d_sampling_steps(
+        prob_dist_list=prob_dist_list,
+        corr_matrix=corr_matrix,
+        sample_size=100,
+        sampling_method='lhs'
+    )
+    axs8[0].set_xlabel('U1')
+    axs8[0].set_ylabel('U2')
+    axs8[1][0].set_xlabel('Z1')
+    axs8[1][0].set_ylabel('Z2')
+    axs8[2][0].set_xlabel('Y1')
+    axs8[2][0].set_ylabel('Y2')
+    axs8[-1][0].set_xlabel('Es [ksi]')
+    axs8[-1][0].set_ylabel('b [-]')
