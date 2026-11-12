@@ -1,0 +1,12 @@
+nltha.setup(analysis_case, pool_size, design_num_list, haz_lev_list, gm_database_dir_path)
+nltha.run(analysis_case, pool_size)
+nltha.wrap_up(analysis_case)
+nltha.collect_edps(analysis_case, pool_size)
+
+psdemha.setup(analysis_case, design_num_list, haz_lev_list)
+psdemha.run(analysis_case, pool_size)
+psdemha.wrap_up(analysis_case)
+
+psdamha.setup(analysis_case, design_num_list, haz_lev_list, n_gm_list, rng_seed=rng_seed)
+psdamha.run(analysis_case, pool_size)
+psdamha.wrap_up(analysis_case)

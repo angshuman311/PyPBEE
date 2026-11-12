@@ -280,7 +280,7 @@ class FrozenMultivariateNataf:
         mvn = multivariate_normal(mean=mean, cov=cov)
         term_2 = mvn.pdf(np.column_stack([z_i.flatten(), z_j.flatten()])).reshape(n, n)
         integrand = term_1 * term_2
-        integral = np.trapz(np.trapz(integrand, z, axis=1), z)
+        integral = np.trapezoid(np.trapezoid(integrand, z, axis=1), z)
         return integral - rho_ij
 
     # ------------------------------------------------------------------------------------------------------------------

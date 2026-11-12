@@ -1,0 +1,12 @@
+ds_list = list()
+ds_list.append(
+    DS(
+        edp_list[0],
+        lambda x: 5.5,
+        haz_req={
+            'normalized_fragility_dist': lognorm(0.082, 0, 1.03),
+            'estimation_sample_size': 5
+        },
+        ds_type='disp_damage'
+    )
+)

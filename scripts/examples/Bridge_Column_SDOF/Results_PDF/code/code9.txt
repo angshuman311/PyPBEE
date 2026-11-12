@@ -1,0 +1,6 @@
+fig6, ax6, _ = edp1.plot_dhc(
+    for_which=['100', '1', '1', '1'],
+    edp_str='node_2'
+)
+ax6.set_xlabel('EDP_1 [in]')
+ax6.set_ylabel('MAF [-]')

@@ -1,0 +1,13 @@
+ds1 = psdamha.ds_list[0]
+fig7, ax7, _ = ds1.plot_denormalized_fragility(
+    for_which=['100', '1', '1', '1'],
+    ds_str='node_2',
+)
+mrp_ds1 = 1 / ds1.get_psdamha_results(
+    for_which=['100', '1', '1', '1'],
+    ds_str='node_2'
+)[0]
+
+fig8, axs8, _ = ds1.plot_haz_deagg(
+    for_which=['100', '1', '1', '1'], wrt='im'
+)

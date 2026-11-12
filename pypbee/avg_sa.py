@@ -28,7 +28,7 @@ class AvgSa(Sa):
         self.range_multiplier = kwargs.get('range_multiplier', [1, 1])
         self.num_periods = kwargs.get('num_periods', 10)
         self.type_spacing = kwargs.get('type_spacing', 'log')
-        super().__init__(structure, gmm, correl_func)
+        super().__init__(structure, gmm, correl_func, **kwargs)
 
     ####################################################################################################################
     # Static methods
@@ -73,7 +73,7 @@ class AvgSa(Sa):
 
         period_range = self.evaluate_period(for_which)
         target = self.get_inv_seismic_hazard(mrp, for_which)
-        ind = np.in1d(spectral_periods, period_range)
+        ind = np.isin(spectral_periods, period_range)
         rec_avg = np.exp(np.sum(sample_big[:, ind], axis=1) / len(period_range))
         if is_scaled:
             scale_fac = target / rec_avg
@@ -109,7 +109,7 @@ class AvgSa(Sa):
         n_sp = len(spectral_periods)
         n_p = len(period_range)
 
-        ind_period_range = np.in1d(spectral_periods, period_range)
+        ind_period_range = np.isin(spectral_periods, period_range)
         med_sa_period_range = med_sa_spectrum[:, ind_period_range]  # (n_s, n_p)
         sig_ln_sa_period_range = sig_ln_sa_spectrum[:, ind_period_range]  # (n_s, n_p)
 

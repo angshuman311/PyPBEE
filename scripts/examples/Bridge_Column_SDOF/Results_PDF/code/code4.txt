@@ -1,0 +1,6 @@
+prelim_analysis = PrelimAnalysis(sdof, num_modes)
+psha = PSHA(im)
+gms = GMS(im)
+nltha = NLTHA(edp_list, im)
+psdemha = PSDemHA(edp_list, im)
+psdamha = PSDamHA(ds_list, im=im, sol_type='numerical')

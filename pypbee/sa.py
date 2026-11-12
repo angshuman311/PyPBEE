@@ -35,8 +35,19 @@ class Sa(IM):
     # Constructor
     ####################################################################################################################
 
-    def __init__(self, structure, gmm, correl_func):
+    gm_component_modes = ('two_horizontal', 'single_horizontal')
+
+    def __init__(self, structure, gmm, correl_func, **kwargs):
         self.correl_func = correl_func  # function defining correlation b/w Sa at different structural periods
+        # 'two_horizontal'    : Sa is the geometric mean of the two horizontal components (default)
+        # 'single_horizontal' : Sa is the spectral acceleration of one horizontal component
+        self.gm_component_mode = kwargs.get('gm_component_mode', 'two_horizontal')
+        if self.gm_component_mode not in Sa.gm_component_modes:
+            raise ValueError(f"gm_component_mode should be in {Sa.gm_component_modes}")
+        # the next three attributes have an effect only if gm_component_mode = 'single_horizontal'
+        self.allow_both_components = kwargs.get('allow_both_components', False)
+        self.include_vertical = kwargs.get('include_vertical', False)
+        self.sigma_component_func = kwargs.get('sigma_component_func', None)
         super().__init__(structure, gmm)
 
     ####################################################################################################################
@@ -64,6 +75,34 @@ class Sa(IM):
     ####################################################################################################################
     # Public Functionalities (instance methods)
     ####################################################################################################################
+
+    def get_rec_pool(self):
+        # Returns the record data and the pool of candidate spectra for ground motion selection.
+        # sa_pool  : (n_pool, n_per) spectra of the candidates
+        # rec_ind  : (n_pool,) index (starts at 0) of the record of each candidate
+        # comp_num : (n_pool,) horizontal component of each candidate (0 : both, 1 or 2 : one component)
+        rec_data_dir_path = Utility.get_path(os.path.dirname(__file__), 'Rec_Data')
+        rec_data = Utility.pickle_load_dict(Utility.get_path(rec_data_dir_path, 'rec_data.pickle'))
+        n_rec = len(rec_data['file_name_1'])
+
+        if getattr(self, 'gm_component_mode', 'two_horizontal') == 'single_horizontal':
+            file_path = Utility.get_path(rec_data_dir_path, 'rec_data_components.pickle')
+            if not os.path.isfile(file_path):
+                raise FileNotFoundError(
+                    f"{file_path} not found! "
+                    f"Run Utility.build_rec_data_components(gm_database_dir_path) one time to create it.")
+            rec_data_components = Utility.pickle_load_dict(file_path)
+            sa_pool = np.vstack((rec_data_components['sa_known_1'], rec_data_components['sa_known_2']))
+            rec_ind = np.tile(np.arange(n_rec), 2)
+            comp_num = np.repeat([1, 2], n_rec)
+        else:
+            sa_pool = rec_data['sa_known']
+            rec_ind = np.arange(n_rec)
+            comp_num = np.zeros(n_rec, dtype=int)
+
+        return rec_data, sa_pool, rec_ind, comp_num
+
+    # ------------------------------------------------------------------------------------------------------------------
 
     def shc_at_periods(self, periods, **kwargs):
         im_input = kwargs.get('im_input', np.array([]))
@@ -196,6 +235,12 @@ class Sa(IM):
         for i in range(n_s):
             med_sa_periods[i, :], sig_ln_sa_periods[i, :] = self._gmm(scenarios[i], periods)
 
+        # Optional: add the component-to-component variability to the GMM standard deviation
+        sigma_component_func = getattr(self, 'sigma_component_func', None)
+        if sigma_component_func is not None:
+            sig_c = np.array(sigma_component_func(periods), dtype=float).reshape(1, n_p)
+            sig_ln_sa_periods = np.sqrt(np.square(sig_ln_sa_periods) + np.square(sig_c))
+
         to_return = list()
         to_return.append(med_sa_periods)
         to_return.append(sig_ln_sa_periods)
@@ -239,18 +284,25 @@ class Sa(IM):
                                       rng_seed, max_scale, min_scale, dev_weights, n_loop,
                                       penalty, is_scaled, not_allowed, classify_pulse, sampling_method):
 
-        # Extract rec_data
-        rec_data_file_path = Utility.get_path(os.path.dirname(__file__), 'Rec_Data', 'rec_data.pickle')
-        rec_data = Utility.pickle_load_dict(rec_data_file_path)
+        # Extract rec_data and the pool of candidate spectra
+        # (one candidate for each record, or one candidate for each horizontal component of each record)
+        rec_data, sa_known, rec_ind, comp_num = self.get_rec_pool()
+        single_component = getattr(self, 'gm_component_mode', 'two_horizontal') == 'single_horizontal'
         file_name_1 = rec_data['file_name_1']
         file_name_2 = rec_data['file_name_2']
         file_name_vert = rec_data['file_name_vert']
         per_known = rec_data['per_known']
-        sa_known = rec_data['sa_known']
-        soil_vs_30 = rec_data['soil_vs_30']
+        soil_vs_30 = rec_data['soil_vs_30'][rec_ind]
         not_allowed_rec_num = rec_data['not_allowed_rec_num']
-        not_allowed_ind = np.unique([i - 1 for i in [*not_allowed_rec_num, *not_allowed]])
+        not_allowed_rec_ind = np.unique([i - 1 for i in [*not_allowed_rec_num, *not_allowed]]).astype(int)
+        # candidates of a not-allowed record, and candidates that have no spectrum
+        not_allowed_ind = np.flatnonzero(np.isin(rec_ind, not_allowed_rec_ind) | np.all(sa_known == 0, axis=1))
         pulse_like_records = rec_data['pulse_like_records']
+        # candidates that have the same group_id cannot be together in the selected set
+        if single_component and getattr(self, 'allow_both_components', False):
+            group_id = np.arange(len(rec_ind))
+        else:
+            group_id = rec_ind
 
         if deterministic:
             cov_req[...] = 0
@@ -368,7 +420,7 @@ class Sa(IM):
 
             err[discard_mask] = self.large_err
             err[not_allowed_ind] = self.large_err
-            err[rec_id[rec_id >= 0]] = self.large_err
+            err[np.isin(group_id, group_id[rec_id[rec_id >= 0]])] = self.large_err
 
             min_err = np.min(err)
             rec_id[i] = np.argmin(err)
@@ -384,10 +436,12 @@ class Sa(IM):
         rec_id, final_scale_fac = greedy(
             n_loop, rec_id, sample_small, sample_big,
             mean_req_exact, sig_req_exact, np.array(dev_weights), scale_fac, final_scale_fac,
-            deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, self.large_err
+            deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, self.large_err,
+            group_id
         )
 
-        final_rsn = rec_id + 1
+        final_rsn = rec_ind[rec_id] + 1
+        final_comp = comp_num[rec_id]
         final_scale_factors = final_scale_fac
 
         # Output data
@@ -395,9 +449,18 @@ class Sa(IM):
         ground_motion_records['gm_nbr'] = list()
         ground_motion_records['NGA_RSN'] = list()
         ground_motion_records['scale_factor'] = list()
-        ground_motion_records['file_name_1'] = list()
-        ground_motion_records['file_name_2'] = list()
-        ground_motion_records['file_name_vert'] = list()
+        # NOTE: the sequence of the 'file_name_' keys gives the sequence of the gm_<i>.txt files for NLTHA
+        if single_component:
+            include_vertical = getattr(self, 'include_vertical', False)
+            ground_motion_records['component'] = list()
+            ground_motion_records['file_name_1'] = list()
+            if include_vertical:
+                ground_motion_records['file_name_vert'] = list()
+        else:
+            include_vertical = True
+            ground_motion_records['file_name_1'] = list()
+            ground_motion_records['file_name_2'] = list()
+            ground_motion_records['file_name_vert'] = list()
 
         if classify_pulse:
             ground_motion_records['is_pulse'] = list()
@@ -406,9 +469,16 @@ class Sa(IM):
             ground_motion_records['gm_nbr'].append(i + 1)
             ground_motion_records['NGA_RSN'].append(final_rsn[i])
             ground_motion_records['scale_factor'].append(final_scale_factors[i])
-            ground_motion_records['file_name_1'].append(file_name_1[final_rsn[i] - 1].replace('.at2', '.AT2'))
-            ground_motion_records['file_name_2'].append(file_name_2[final_rsn[i] - 1].replace('.at2', '.AT2'))
-            ground_motion_records['file_name_vert'].append(file_name_vert[final_rsn[i] - 1].replace('.at2', '.AT2'))
+            if single_component:
+                file_name_sel = file_name_1 if final_comp[i] == 1 else file_name_2
+                ground_motion_records['component'].append(int(final_comp[i]))
+                ground_motion_records['file_name_1'].append(file_name_sel[final_rsn[i] - 1].replace('.at2', '.AT2'))
+            else:
+                ground_motion_records['file_name_1'].append(file_name_1[final_rsn[i] - 1].replace('.at2', '.AT2'))
+                ground_motion_records['file_name_2'].append(file_name_2[final_rsn[i] - 1].replace('.at2', '.AT2'))
+            if include_vertical:
+                ground_motion_records['file_name_vert'].append(
+                    file_name_vert[final_rsn[i] - 1].replace('.at2', '.AT2'))
             if classify_pulse:
                 if final_rsn[i] in pulse_like_records:
                     ground_motion_records['is_pulse'].append(1)
@@ -470,13 +540,15 @@ class Sa(IM):
                 mean_req_exact = mean_req
                 sig_req_exact = np.sqrt(np.diag(cov_req[:, :]))
 
-        rec_data_file_path = Utility.get_path(os.path.dirname(__file__), 'Rec_Data', 'rec_data.pickle')
-        rec_data = Utility.pickle_load_dict(rec_data_file_path)
+        rec_data, sa_known, _, _ = self.get_rec_pool()
         per_known = rec_data['per_known']
-        sa_known = rec_data['sa_known']
 
         # Scale already saved response spectra of eqkes in ensemble. Much faster
-        psa = sa_known[np.array(gm_records['NGA_RSN']) - 1, :].T
+        pool_rows = np.array(gm_records['NGA_RSN']) - 1
+        if 'component' in gm_records.keys():
+            # single-component records: component 2 is in the second half of the pool
+            pool_rows = pool_rows + (np.array(gm_records['component']) - 1) * len(rec_data['file_name_1'])
+        psa = sa_known[pool_rows, :].T
         scale_fac = np.array(gm_records['scale_factor']).reshape(1, len(gm_records['scale_factor']))
         psa = psa * scale_fac
 
@@ -739,10 +811,24 @@ class Sa(IM):
     # ------------------------------------------------------------------------------------------------------------------
 
 
+# Watson-Lamprey and Boore (2007), BSSA 97(5), Table 1, average column
+# Standard deviation due to component-to-component variation (natural logarithm)
+SIGMA_C_WLB07_PERIODS = np.array([0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0])
+SIGMA_C_WLB07_VALUES = np.array([0.16, 0.17, 0.18, 0.20, 0.21, 0.23, 0.23, 0.24, 0.24, 0.24])
+
+
+def sigma_c_watson_lamprey_boore_2007(periods):
+    # Linear interpolation on the logarithm of the period
+    # Constant value for periods shorter than 0.05 s or longer than 5 s
+    periods = np.atleast_1d(np.asarray(periods, dtype=float))
+    return np.interp(np.log(periods), np.log(SIGMA_C_WLB07_PERIODS), SIGMA_C_WLB07_VALUES)
+
+
 @jit(nopython=True)
 def greedy(n_loop, rec_id, sample_small, sample_big,
            mean_req_exact, sig_req_exact, dev_weights, scale_fac, final_scale_fac,
-           deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, large_err):
+           deterministic, penalty, is_scaled, max_scale, min_scale, soil_vs_30, not_allowed_ind, large_err,
+           group_id):
     n_gm = sample_small.shape[0]
     n_big = sample_big.shape[0]
     for k in range(n_loop):
@@ -790,7 +876,7 @@ def greedy(n_loop, rec_id, sample_small, sample_big,
                         dev_total += large_err
 
                 # Should cause improvement and record should not be repeated
-                if dev_total < min_dev and not np.any(rec_id == j):
+                if dev_total < min_dev and not np.any(group_id[rec_id] == group_id[j]):
                     min_id = j
                     min_dev = dev_total
                 # sample_small = np.delete(sample_small, sample_small.shape[0] - 1, axis=0)

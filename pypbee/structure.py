@@ -1677,7 +1677,7 @@ class OSB(FrameStructure):
         trans_mode_index = np.flatnonzero(temp)  # starting zero
 
         # Find location of primary nodes of deck in EigenVector matrix
-        primary_nodes_deck_loc = np.flatnonzero(np.in1d(mode_shapes[0][:, 0], primary_nodes_deck) == 1)
+        primary_nodes_deck_loc = np.flatnonzero(np.isin(mode_shapes[0][:, 0], primary_nodes_deck) == 1)
 
         # Find T-disp of primary nodes of deck
         disp_trans_primary_nodes_deck = np.zeros((len(primary_nodes_deck_loc), len(trans_mode_index)))

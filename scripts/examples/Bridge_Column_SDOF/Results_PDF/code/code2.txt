@@ -1,0 +1,7 @@
+edp_list = [
+    MaxDisp(
+        node_tag=2, dof=1,
+        structure=sdof,
+        tag='1', recorder_file_storage='shared'
+    ),
+]

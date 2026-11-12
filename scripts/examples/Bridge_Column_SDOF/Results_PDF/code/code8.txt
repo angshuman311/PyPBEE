@@ -1,0 +1,17 @@
+edp1 = nltha.edp_list[0]
+fig4, ax4, _ = edp1.plot_conditional_demand_model_3d(
+    for_which=['100', '1', '1', '1'],
+    edp_str='node_2',
+    haz_lev_list=haz_lev_list,
+    im=im,
+    im_lim=(1e-8, 1.),
+    edp_lim=(1e-8, 15.)
+)
+
+fig5, axs5, _ = edp1.plot_conditional_demand_regression_model(
+    for_which=['100', '1', '1', '1'],
+    edp_str='node_2',
+    haz_lev_list=haz_lev_list,
+    im=im,
+    im_lim=[0, 1],
+)

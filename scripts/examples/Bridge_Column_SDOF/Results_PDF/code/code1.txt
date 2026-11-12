@@ -1,0 +1,5 @@
+im = SaT(
+    sdof, gmm, correl_func, 'T_1',
+    gm_component_mode='single_horizontal',
+    sigma_component_func=sigma_c_watson_lamprey_boore_2007
+)

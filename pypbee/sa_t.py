@@ -20,9 +20,9 @@ class SaT(Sa):
     # Constructor
     ####################################################################################################################
 
-    def __init__(self, structure, gmm, correl_func, period):
+    def __init__(self, structure, gmm, correl_func, period, **kwargs):
         self.period = period
-        super().__init__(structure, gmm, correl_func)
+        super().__init__(structure, gmm, correl_func, **kwargs)
 
     ####################################################################################################################
     # Public Functionalities (instance methods)
@@ -79,7 +79,7 @@ class SaT(Sa):
         sa_known[sa_known == 0] = sys.float_info.epsilon
         sample_big = np.log(sa_known[:, rec_per])
 
-        ind = np.in1d(spectral_periods, period)
+        ind = np.isin(spectral_periods, period)
         rec_val = np.exp(sample_big[:, ind]).flatten()
         if is_scaled:
             scale_fac = target / rec_val
@@ -109,7 +109,7 @@ class SaT(Sa):
 
         period = self.evaluate_period(for_which)
 
-        ind_period = np.in1d(spectral_periods, period)
+        ind_period = np.isin(spectral_periods, period)
         med_sa_period = med_sa_spectrum[:, ind_period].flatten()  # (n_s,)
         sig_ln_sa_period = sig_ln_sa_spectrum[:, ind_period].flatten()  # (n_s,)
 

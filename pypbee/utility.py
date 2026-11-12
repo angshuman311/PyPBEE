@@ -18,6 +18,8 @@ import xlrd
 import string
 import eqsig
 from datetime import datetime
+from functools import partial
+from pathos.multiprocessing import ProcessPool as Pool
 from benedict import benedict
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -100,7 +102,8 @@ class Utility:
         fs = kwargs.get('fs', 8)
         txc = kwargs.get('txc', 'red')
         max_text_precision = kwargs.get('max_text_precision', 5.3)
-        fig, axs = plt.subplots(len(gm_file_paths), 1)
+        fig, axs = plt.subplots(len(gm_file_paths), 1, squeeze=False)
+        axs = axs[:, 0]
         for itr in range(len(gm_file_paths)):
             gm, npts, dt = Utility.read_nga_peer_eq_at2_file(gm_file_paths[itr])
             if gm is not None:
@@ -163,6 +166,55 @@ class Utility:
             time_hist = time_hist_list[i][int(npts_start):int(npts_end)]
             save_arr = np.vstack([npts_end - npts_start, dt_list[i], time_hist.reshape(len(time_hist), 1) * scale_fac])
             Utility.save_array_as_text_file(Utility.get_path(target_dir_path, f'gm_{i + 1}.txt'), save_arr)
+
+    # ------------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def get_component_response_spectrum(gm_database_dir_path, periods, xi, gm_file_name):
+        # Pseudo-acceleration response spectrum [g] of one ground motion component
+        # Returns zeros if the file is not in the database
+        time_hist, npts, dt = Utility.read_nga_peer_eq_at2_file(Utility.get_path(gm_database_dir_path, gm_file_name))
+        if time_hist is None:
+            return np.zeros(len(periods))
+        acc_signal = eqsig.AccSignal(time_hist, dt)
+        acc_signal.generate_response_spectrum(response_times=periods, xi=xi)
+        return np.array(acc_signal.s_a)
+
+    # ------------------------------------------------------------------------------------------------------------------
+
+    @staticmethod
+    def build_rec_data_components(gm_database_dir_path, **kwargs):
+        # One-time calculation of the response spectra of the two horizontal components of each record
+        # Necessary for an IM with gm_component_mode = 'single_horizontal'
+        pool_size = kwargs.get('pool_size', 1)
+        xi = kwargs.get('xi', 0.05)
+        rec_data_dir_path = Utility.get_path(os.path.dirname(__file__), 'Rec_Data')
+        save_file_path = kwargs.get('save_file_path', Utility.get_path(rec_data_dir_path, 'rec_data_components.pickle'))
+
+        rec_data = Utility.pickle_load_dict(Utility.get_path(rec_data_dir_path, 'rec_data.pickle'))
+        per_known = rec_data['per_known']
+        n_rec = len(rec_data['file_name_1'])
+        gm_file_names = [*rec_data['file_name_1'], *rec_data['file_name_2']]
+
+        to_run = partial(Utility.get_component_response_spectrum, gm_database_dir_path, per_known, xi)
+        if pool_size > 1:
+            my_pool = Pool(pool_size)
+            sa_known = my_pool.map(to_run, gm_file_names)
+            my_pool.close()
+            my_pool.join()
+            my_pool.clear()
+        else:
+            sa_known = list(map(to_run, gm_file_names))
+        sa_known = np.array(sa_known)
+
+        rec_data_components = {
+            'per_known': per_known,
+            'xi': xi,
+            'sa_known_1': sa_known[:n_rec, :],
+            'sa_known_2': sa_known[n_rec:, :],
+        }
+        Utility.pickle_dump_dict(save_file_path, rec_data_components)
+        return rec_data_components
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -540,7 +592,7 @@ class Utility:
     def get_indexed_matrix(m, ind):
         n = len(ind)
         inds = np.arange(m.shape[0])
-        m_ind = np.in1d(inds, ind)
+        m_ind = np.isin(inds, ind)
         m_ind = np.outer(m_ind, m_ind)
         return m[m_ind].reshape((n, n))
 
