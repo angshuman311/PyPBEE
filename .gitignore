@@ -22,8 +22,14 @@ Bridge_*_extract_*/
 NGA_PEER_EQ_DB/
 OpenSees_Windows/
 
-# ─── databases, vendors ──────────────────────
-data/NGA_PEER_EQ_DB/
+# ─── Local data, results and models (not tracked) ────────────────────────
+/data/
+/PyPBEE_Work_Dir/
+# In scripts/, track only the examples folder
+/scripts/*
+!/scripts/examples/
+
+# ─── vendors ──────────────────────
 vendor/**/*.exe
 
 # ─── docx ──────────────────────

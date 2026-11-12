@@ -33,12 +33,12 @@ n_gm_list = [10] * len(mrp_list)
 rng_seed = 'unique 6'  # for other Bridges
 
 base_dir_path = r"C:\Users\adeb\Work\PyPBEE"
-base_work_dir_path = r"C:\Users\adeb\Work\PyPBEE_Work_Dir"
+base_work_dir_path = os.path.join(base_dir_path, "PyPBEE_Work_Dir")
 model_files_path = os.path.join(base_dir_path, 'scripts', 'examples', name, 'Model_Files')
 model_work_dir_path = os.path.join(base_work_dir_path, f"{name}_Work_Dir")
 local_opensees_path = os.path.join(base_dir_path, "vendor", "OpenSees_Windows", "OpenSees")
 local_python_path = os.path.join(base_dir_path, "venv", "pypbee", "Scripts", "python.exe")
-gm_database_dir_path = r"C:\Users\adeb\Work\NGA_PEER_EQ_DB"
+gm_database_dir_path = os.path.join(base_dir_path, "data", "NGA_PEER_EQ_DB")
 local_bash_path = r"C:\Program Files\Git\git-bash"
 model_params = Utility.import_attr_from_module(
     model_files_path, f"model_info", 'model_params'
